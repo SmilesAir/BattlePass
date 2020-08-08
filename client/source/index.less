@@ -1,0 +1,50 @@
+
+body {
+    overscroll-behavior: contain;
+}
+
+.mainContainer {
+    display: grid;
+    grid-template-areas:
+        "header"
+        "interface"
+        "footer";
+    grid-template-rows: 1em 1fr 0em;
+
+    height: 94%;
+
+    padding: .5em;
+    background-color: rgb(235, 245, 255);
+    border-radius: .5em;
+    box-shadow: 0 0 4px 4px black;
+
+    .headerContainer {
+        grid-area: header;
+        align-self: center;
+        justify-self: center;
+
+        button {
+            position: relative;
+            z-index: 50;
+        }
+    }
+    
+    .defaultInterfaceContainer {
+        grid-area: interface;
+        display: grid;
+    }
+    
+    .interfaceSelectButton {
+        border-radius: 1em;
+        margin: .2em;
+    }
+}
+
+.noHeader {
+    grid-template-areas:
+    "interface"
+    "footer";
+
+    grid-template-rows: 1fr 0em;
+}
+

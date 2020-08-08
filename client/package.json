@@ -1,0 +1,34 @@
+{
+    "name": "starterproject",
+    "version": "v0.0.1",
+    "description": "Minimal Client",
+    "homepage": "https://github.com/SmilesAir/StarterProject",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/SmilesAir/StarterProject.git"
+    },
+    "author": {
+        "name": "Ryan Young",
+        "email": "ryan@smilesair.com"
+    },
+    "main": "source/index.js",
+    "scripts": {
+        "start": "npm i && codeglue --mode=server --stage=development",
+        "deploy": "aws s3 sync ./builds/web s3://starterproject-development"
+    },
+    "dependencies": {
+        "aws-sdk": "2.316.0",
+        "mobx": "^5.1.2",
+        "mobx-react": "^5.2.8",
+        "react": "^16.5.2",
+        "react-dom": "^16.5.2"
+    },
+    "devDependencies": {
+        "@babel/plugin-proposal-decorators": "^7.1.6",
+        "@babel/plugin-proposal-class-properties": "^7.1.0",
+        "codeglue": "git+https://github.com/SmilesAir/codeglue.git",
+        "eslint": "^4.19.1",
+        "eslint-plugin-react": "^7.11.1"
+    }
+}
