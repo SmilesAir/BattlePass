@@ -1,12 +1,12 @@
 {
-    "name": "starterproject",
+    "name": "battlepass",
     "version": "v0.0.1",
-    "description": "Minimal Client",
-    "homepage": "https://github.com/SmilesAir/StarterProject",
+    "description": "Battle Pass for Tiny Room",
+    "homepage": "https://github.com/SmilesAir/BattlePass",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/SmilesAir/StarterProject.git"
+        "url": "https://github.com/SmilesAir/BattlePass.git"
     },
     "author": {
         "name": "Ryan Young",
@@ -15,12 +15,14 @@
     "main": "source/index.js",
     "scripts": {
         "start": "npm i && codeglue --mode=server --stage=development",
-        "deploy": "aws s3 sync ./builds/web s3://starterproject-development"
+        "deploy": "aws s3 sync ./builds/web s3://battlepass-development"
     },
     "dependencies": {
         "aws-sdk": "2.316.0",
+        "duel": "^3.2.0",
         "mobx": "^5.1.2",
         "mobx-react": "^5.2.8",
+        "reacket": "git+https://github.com/SmilesAir/reacket.git",
         "react": "^16.5.2",
         "react-dom": "^16.5.2"
     },

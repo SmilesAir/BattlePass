@@ -1,5 +1,5 @@
 # serverless.yml
-service: StarterProject
+service: BattlePass
 
 provider:
   name: aws
