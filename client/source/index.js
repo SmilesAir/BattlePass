@@ -3,63 +3,151 @@
 const React = require("react")
 const ReactDOM = require("react-dom")
 const MobxReact = require("mobx-react")
-const Mobx = require("mobx")
 import Reacket from "reacket"
-const Duel = require("duel")
+import Amplify from "@aws-amplify/core"
+import { Hub } from "@aws-amplify/core"
+import Auth from "@aws-amplify/auth"
+import { AmplifySignOut, AmplifyAuthenticator, AmplifySignInButton, AmplifySignUp, AmplifySignIn } from "@aws-amplify/ui-react"
+
+const MainStore = require("./mainStore.js")
+const Setup = require("./setup.js")
+const Admin = require("./admin.js")
+const EventInfo = require("./eventInfo.js")
+const Basic = require("./basic.js")
 
 require("./index.less")
 
-let matches = Mobx.observable([])
+Amplify.configure({
+    Auth: {
+        region: "us-west-2",
+        userPoolId: "us-west-2_lQ8aO1UoM",
+        userPoolWebClientId: "5pu56p45tjj0dm27n4o944rprn",
+        mandatorySignIn: true
+    }
+})
 
-function updateBracketFromNames(namesString) {
-    let names = namesString.split("\n")
-    names = names.filter((name) => {
-        return name !== undefined && name.length > 0
-    })
+MainStore.url = new URL(window.location.href)
+MainStore.Reacket = Reacket
 
-    if (names.length < 4) {
-        return
+@MobxReact.observer class AccountLogin extends React.Component {
+    constructor() {
+        super()
+
+        Auth.currentAuthenticatedUser().then((data) => {
+            MainStore.isLoggedIn = true
+            MainStore.cognitoUsername = data.username
+            MainStore.displayName = data.attributes.name
+        }).catch(() => {
+            MainStore.isLoggedIn = false
+        })
+
+        Hub.listen("auth", (data) => {
+            const { payload } = data
+            this.onAuthEvent(payload)
+            console.log("A new auth event has happened: ", data.payload.data.username + " has " + data.payload.event, data)
+        })
     }
 
-    let d = new Duel(names.length)
-
-    matches.splice(0, matches.length)
-    for (let match of d.matches) {
-        let newMatch = {
-            id: `${match.id.s}.${match.id.r}.${match.id.m}`,
-            round: match.id.s === 2 ? d.p : match.id.r,
-            match: match.id.m,
-            players: [],
-            "score": [
-                0,
-                0
-            ]
+    onAuthEvent(payload) {
+        if (payload.event === "signIn") {
+            MainStore.isLoggedIn = true
+            MainStore.cognitoUsername = payload.data.username
+            MainStore.displayName = payload.data.attributes.name
+            MainStore.showAuthenticator = false
+        } else if (payload.event === "signOut") {
+            MainStore.isLoggedIn = false
+            MainStore.cognitoUsername = undefined
+            MainStore.displayName = undefined
+            MainStore.showAuthenticator = false
         }
+    }
 
-        for (let player of match.p) {
-            if (player === 0) {
-                newMatch.players.push({
-                    "id": 0,
-                    "name": "TBD",
-                    "seed": 0
-                })
-            } else if (player !== -1) {
-                newMatch.players.push({
-                    "id": player,
-                    "name": names[player - 1],
-                    "seed": player
-                })
-            } else {
-                newMatch.needSpacer = true
-                newMatch.players.push({
-                    "id": 0,
-                    "name": "Spacer",
-                    "seed": 0
-                })
-            }
+    render() {
+        return (
+            <div>
+                { MainStore.showAuthenticator ? <AmplifyAuthenticator>
+                    <AmplifySignUp
+                        slot="sign-up"
+                        formFields={[
+                            {
+                                type: "username",
+                                label: "Email *"
+                            },
+                            { type: "password" },
+                            {
+                                type: "name",
+                                label: "Display Name *",
+                                placeholder: "Enter your display name",
+                                required: true
+                            }
+                        ]}
+                    />
+                    <AmplifySignIn
+                        slot="sign-in"
+                        formFields={[
+                            {
+                                type: "username",
+                                label: "Email *"
+                            },
+                            { type: "password" },
+                        ]}
+                    />
+                </AmplifyAuthenticator> : null }
+                { !MainStore.isLoggedIn && !MainStore.showAuthenticator ? <AmplifySignInButton onClick={() => {
+                    MainStore.showAuthenticator = true
+                }}>Sign Up / Sign In</AmplifySignInButton> : null }
+                { MainStore.isLoggedIn ? <AmplifySignOut /> : null }
+            </div>
+        )
+    }
+}
+
+@MobxReact.observer class MainContent extends React.Component {
+    constructor() {
+        super()
+
+        this.state = {
+            view: MainStore.url.searchParams.get("admin") || "basic"
         }
+    }
 
-        matches.push(newMatch)
+    getBasic() {
+        return <Basic />
+    }
+
+    getSetup() {
+        return (
+            <div>
+                <Setup />
+                <Reacket matches={MainStore.matches} />
+            </div>
+        )
+    }
+
+    getRuntime() {
+        return (
+            <div>
+                <EventInfo />
+                <Reacket matches={MainStore.matches} />
+            </div>
+        )
+    }
+
+    render() {
+        switch (this.state.view) {
+            case "basic":
+                return this.getBasic()
+            case "setup":
+                return this.getSetup()
+            case "runtime":
+                return this.getRuntime()
+            default:
+                return (
+                    <div>
+                    Something went wrong. Contact ryan@smilesair.com
+                    </div>
+                )
+        }
     }
 }
 
@@ -71,96 +159,9 @@ function updateBracketFromNames(namesString) {
     render() {
         return (
             <div>
-                <div>
-                    Tiny Room Challenge 3
-                </div>
-                <Reacket matches={matches} />
-                <Setup />
-            </div>
-        )
-    }
-}
-
-@MobxReact.observer class Setup extends React.Component {
-    constructor() {
-        super()
-
-        this.state = {
-            namesText: "",
-            swapName: undefined
-        }
-    }
-
-    componentDidMount() {
-        this.state.namesText = "a\nb\nc\nd\ne\nf\ng\nh"
-        this.setState(this.state)
-        updateBracketFromNames(this.state.namesText)
-    }
-
-    onNamesChanged(event) {
-        this.state.namesText = event.target.value
-        this.setState(this.state)
-        updateBracketFromNames(this.state.namesText)
-    }
-
-    swapPlayer(name) {
-        if (this.state.swapName === undefined) {
-            this.state.swapName = name
-        } else {
-            let s1 = this.state.namesText.indexOf(this.state.swapName)
-            let s2 = this.state.namesText.indexOf(name)
-            if (s1 < s2) {
-                this.state.namesText = [ this.state.namesText.slice(0, s1), name, this.state.namesText.slice(s1 + this.state.swapName.length) ].join("")
-                s2 = this.state.namesText.indexOf(name, s1 + name.length)
-                this.state.namesText = [ this.state.namesText.slice(0, s2), this.state.swapName, this.state.namesText.slice(s2 + name.length) ].join("")
-            } else {
-                this.state.namesText = [ this.state.namesText.slice(0, s2), this.state.swapName, this.state.namesText.slice(s2 + name.length) ].join("")
-                s1 = this.state.namesText.indexOf(this.state.swapName, s2 + this.state.swapName.length)
-                this.state.namesText = [ this.state.namesText.slice(0, s1), name, this.state.namesText.slice(s1 + this.state.swapName.length) ].join("")
-            }
-
-            this.state.swapName = undefined
-        }
-
-        this.setState(this.state)
-        updateBracketFromNames(this.state.namesText)
-    }
-
-    getPlayerEntries() {
-        if (this.state.namesText === undefined || this.state.namesText.length === 0) {
-            return null
-        }
-
-        let names = this.state.namesText.split("\n")
-        let needSwapButton = names.length > 1
-        let seed = 1
-        return names.map((name) => {
-            if (name !== undefined && name.length > 0) {
-                return (
-                    <div key={name}>
-                        {seed++}. {name}{needSwapButton ? " - " : ""}
-                        {needSwapButton ? <button onClick={() => this.swapPlayer(name)}>swap</button> : null}
-                    </div>
-                )
-            }
-
-            return undefined
-        })
-    }
-
-    render() {
-        return (
-            <div>
-                <div>
-                    Tournament Setup
-                </div>
-                <div>
-                    <div>Enter player names (1 per line)</div>
-                    <textarea onChange={(event) => this.onNamesChanged(event)} value={this.state.namesText} />
-                </div>
-                <div>
-                    {this.getPlayerEntries()}
-                </div>
+                <Admin />
+                <AccountLogin />
+                <MainContent />
             </div>
         )
     }

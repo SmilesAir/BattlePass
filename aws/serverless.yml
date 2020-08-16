@@ -1,14 +1,16 @@
 # serverless.yml
-service: BattlePass
+service: battle-pass
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs12.x
   region: us-west-2
   stage: ${opt:stage, "development"}
 
   environment:
-    TEST_TABLE: ${self:provider.stage}-testTable
+    EVENT_TABLE: ${self:service}-${self:provider.stage}-eventTable
+    USER_TABLE: ${self:service}-${self:provider.stage}-userTable
+    DOMAIN_SUFFIX: smilesair-gitis
 
   iamRoleStatements:
     - Effect: Allow
@@ -18,23 +20,73 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.TEST_TABLE}"
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.EVENT_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USER_TABLE}"
 
 functions:
-  testLambda:
-    handler: source/test.handler
+  setupNewEvent:
+    handler: source/eventCommon.setupNewEvent
     events:
       - http:
-          path: handler
+          path: setupNewEvent/{eventName}
+          method: post
+          cors: true
+  setupSetCurrentEvent:
+    handler: source/eventCommon.setupSetCurrentEvent
+    events:
+      - http:
+          path: setupSetCurrentEvent/{eventName}
+          method: post
+          cors: true
+  setupGetEvents:
+    handler: source/eventCommon.setupGetEvents
+    events:
+      - http:
+          path: setupGetEvents
+          method: get
+          cors: true
+  setupGetEvent:
+    handler: source/eventCommon.setupGetEvent
+    events:
+      - http:
+          path: setupGetEvent/{eventName}
+          method: get
+          cors: true
+  getCurrentEventInfo:
+    handler: source/eventCommon.getCurrentEventInfo
+    events:
+      - http:
+          path: getCurrentEventInfo
+          method: get
+          cors: true
+  setupNewUser:
+    handler: source/setupNewUser.handler
+    events:
+      - http:
+          path: setupNewUser/{username}
+          method: post
+          cors: true
+  upgradeUser:
+    handler: source/upgradeUser.handler
+    events:
+      - http:
+          path: upgradeUser/{username}
           method: post
           cors: true
 
 resources:
   Resources:
-    testTable:
+    eventTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:provider.environment.TEST_TABLE}
+        TableName: ${self:provider.environment.EVENT_TABLE}
         AttributeDefinitions:
           - AttributeName: key
             AttributeType: S
@@ -44,4 +96,74 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    userTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.USER_TABLE}
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    serviceUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:service}-user-pool-${opt:stage, self:provider.stage}
+        UsernameAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+    serviceUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:service}-user-pool-client-${opt:stage, self:provider.stage}
+        AllowedOAuthFlows:
+          - code
+          - implicit
+        AllowedOAuthFlowsUserPoolClient: true
+        AllowedOAuthScopes:
+          - email
+          - openid
+          - profile
+          - aws.cognito.signin.user.admin
+        UserPoolId:
+          Ref: serviceUserPool
+        CallbackURLs:
+          - https://www.tinyroomchallenge.com
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+        GenerateSecret: false
+        SupportedIdentityProviders:
+          - COGNITO
+    serviceUserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        UserPoolId:
+          Ref: serviceUserPool
+        Domain: ${self:service}-user-pool-domain-${opt:stage, self:provider.stage}-${self:provider.environment.DOMAIN_SUFFIX}
 
+custom:
+  autoscaling:
+    - table: eventTable
+      read:
+        minimum: 1
+        maximum: 100
+        usage: .75
+      write:
+        minimum: 1
+        maximum: 100
+        usage: .75
+    - table: userTable
+      read:
+        minimum: 1
+        maximum: 100
+        usage: .75
+      write:
+        minimum: 1
+        maximum: 100
+        usage: .75

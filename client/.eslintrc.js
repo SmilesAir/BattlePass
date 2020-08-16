@@ -149,7 +149,7 @@ module.exports = exports = {
         "eol-last": WARN,
         "func-style": [ WARN, "declaration" ],
         "id-length": OFF,
-        "indent": [ WARN, 4 ],
+        "indent": [ WARN, 4, { "SwitchCase": 1 } ],
         "jsx-quotes": [ WARN, "prefer-double" ],
         "linebreak-style": [ WARN, "windows" ],
         "lines-around-comment": [ WARN, { "beforeBlockComment": true } ],

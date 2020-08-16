@@ -18,6 +18,10 @@
         "deploy": "aws s3 sync ./builds/web s3://battlepass-development"
     },
     "dependencies": {
+        "@aws-amplify/auth": "^3.3.4",
+        "@aws-amplify/core": "^3.4.5",
+        "@aws-amplify/ui-react": "^0.2.14",
+        "aws-amplify": "^3.0.23",
         "aws-sdk": "2.316.0",
         "duel": "^3.2.0",
         "mobx": "^5.1.2",
