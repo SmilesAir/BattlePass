@@ -15,7 +15,7 @@ module.exports = @MobxReact.observer class EventInfo extends React.Component {
     render() {
         return (
             <div>
-                Tiny Room Challenge 3  {MainStore.displayName}
+                Username: {MainStore.displayName}
             </div>
         )
     }

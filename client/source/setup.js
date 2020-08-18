@@ -13,7 +13,8 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         this.state = {
             eventName: "",
             namesText: "",
-            swapName: undefined
+            swapName: undefined,
+            isCreatingNewEvent: false
         }
     }
 
@@ -51,20 +52,24 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
                 this.setState(this.state)
 
                 if (this.state.eventName !== undefined) {
-                    fetchEx("SETUP_GET_EVENT", { eventName: this.state.eventName }, undefined, {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json"
-                        }
-                    }).then((eventResponse) => {
-                        return eventResponse.json()
-                    }).then((eventResponse) => {
-                        this.state.namesText = eventResponse.names.join("\n")
-                        this.setState(this.state)
-                        Common.updateBracketFromNames(eventResponse.names)
-                    })
+                    this.fetchAndFillEventData(this.state.eventName)
                 }
             }
+        })
+    }
+
+    fetchAndFillEventData(eventName) {
+        return fetchEx("SETUP_GET_EVENT", { eventName: eventName }, undefined, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then((eventResponse) => {
+            return eventResponse.json()
+        }).then((eventResponse) => {
+            this.state.namesText = eventResponse.names.join("\n")
+            this.setState(this.state)
+            Common.updateBracketFromNames(eventResponse.names)
         })
     }
 
@@ -120,7 +125,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
     }
 
     uploadEventData() {
-        fetchEx("SETUP_NEW_EVENT", { eventName: this.state.eventName }, undefined, {
+        return fetchEx("SETUP_NEW_EVENT", { eventName: this.state.eventName }, undefined, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -147,6 +152,8 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
     onSelectedEventChanged(event) {
         this.state.eventName = event.target.value
         this.setState(this.state)
+
+        this.fetchAndFillEventData(event.target.value)
     }
 
     getEventsDropDown() {
@@ -189,15 +196,43 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         })
     }
 
+    setCreatingNewEvent() {
+        this.state.isCreatingNewEvent = true
+        this.setState(this.state)
+    }
+
+    onCreateNewEvent() {
+        this.state.isCreatingNewEvent = false
+        this.uploadEventData().then(() => {
+            location.reload()
+        })
+    }
+
+    onNewEventNameChanged(event) {
+        this.state.eventName = event.target.value
+        this.setState(this.state)
+    }
+
+    getNewEventElement() {
+        return (
+            <div>
+                <label>New Event Name:</label>
+                <input type="text" value={this.state.eventName} onChange={(event) => this.onNewEventNameChanged(event)} />
+                <button onClick={() => this.onCreateNewEvent()}>Create New Event</button>
+            </div>
+        )
+    }
+
     render() {
         return (
             <div>
                 <h1>
                     Event Setup
                 </h1>
-                {this.getEventsDropDown()}
-                <button onClick={() => this.uploadEventData()}>Upload Event</button>
+                {this.state.isCreatingNewEvent ? this.getNewEventElement() : this.getEventsDropDown()}
+                <button onClick={() => this.setCreatingNewEvent()}>Create New Event</button>
                 <button onClick={() => this.setCurrentEvent()} disabled={this.state.eventName === undefined || this.state.eventName.length === 0 || this.state.eventName === "Select Event"}>Set as Current Event</button>
+                <button onClick={() => this.uploadEventData()}>Upload Event</button>
                 <div>
                     <div>Enter player names (1 per line)</div>
                     <textarea onChange={(event) => this.onNamesChanged(event)} value={this.state.namesText} />

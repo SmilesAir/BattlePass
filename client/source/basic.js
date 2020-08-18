@@ -23,6 +23,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
             return eventResponse.json()
         }).then((eventResponse) => {
             Common.updateBracketFromNames(eventResponse.info.names)
+            MainStore.displayName = 
             this.forceUpdate()
         })
     }
