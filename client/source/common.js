@@ -3,6 +3,7 @@ const Duel = require("duel")
 
 const MainStore = require("./mainStore.js")
 const { MatchResult } = require("./dataClasses.js")
+const { fetchEx } = require("./endpoints.js")
 
 module.exports.updateBracketFromNamesString = function(namesString) {
     module.exports.updateBracketFromNames(namesString.split("\n"))
@@ -66,4 +67,17 @@ module.exports.updateBracketFromNames = function(namesArray) {
 
         MainStore.matches.push(newMatch)
     }
+}
+
+module.exports.updateEventInfoFromAws = function() {
+    return fetchEx("GET_CURRENT_EVENT_INFO", undefined, undefined, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json"
+        }
+    }).then((response) => {
+        return response.json()
+    }).then((response) => {
+        module.exports.updateBracketFromNames(response.info.names)
+    })
 }

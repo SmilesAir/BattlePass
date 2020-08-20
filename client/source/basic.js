@@ -14,16 +14,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
     constructor() {
         super()
 
-        fetchEx("GET_CURRENT_EVENT_INFO", undefined, undefined, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json"
-            }
-        }).then((eventResponse) => {
-            return eventResponse.json()
-        }).then((eventResponse) => {
-            Common.updateBracketFromNames(eventResponse.info.names)
-            MainStore.displayName = 
+        Common.updateEventInfoFromAws().then(() => {
             this.forceUpdate()
         })
     }

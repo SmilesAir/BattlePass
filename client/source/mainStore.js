@@ -9,5 +9,6 @@ module.exports = Mobx.observable({
     showAuthenticator: false,
     displayName: undefined,
     isAdmin: true,
-    url: undefined
+    url: undefined,
+    currentMatch: undefined
 })

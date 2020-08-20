@@ -12,8 +12,8 @@ import { AmplifySignOut, AmplifyAuthenticator, AmplifySignInButton, AmplifySignU
 const MainStore = require("./mainStore.js")
 const Setup = require("./setup.js")
 const Admin = require("./admin.js")
-const EventInfo = require("./eventInfo.js")
 const Basic = require("./basic.js")
+const Runtime = require("./runtime.js")
 
 require("./index.less")
 
@@ -126,10 +126,7 @@ MainStore.Reacket = Reacket
 
     getRuntime() {
         return (
-            <div>
-                <EventInfo />
-                <Reacket matches={MainStore.matches} />
-            </div>
+            <Runtime />
         )
     }
 
