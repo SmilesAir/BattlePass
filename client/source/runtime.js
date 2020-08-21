@@ -24,6 +24,12 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
         this.forceUpdate()
     }
 
+    getExpandElement(id) {
+        return (
+            <button onClick={() => this.onSetMatch(id)}>Set</button>
+        )
+    }
+
     getMatchRuntime() {
         if (MainStore.currentMatch === undefined) {
             return null
@@ -41,7 +47,7 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
             <div>
                 <EventInfo />
                 {this.getMatchRuntime()}
-                <MainStore.Reacket matches={MainStore.matches} isRuntime={true} setMatchCallback={(id) => this.onSetMatch(id)} />
+                <MainStore.Reacket matches={MainStore.matches} isRuntime={true} getExpandElement={(id) => this.getExpandElement(id)} />
             </div>
         )
     }
