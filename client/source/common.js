@@ -5,7 +5,6 @@ const MainStore = require("./mainStore.js")
 const { MatchResult } = require("./dataClasses.js")
 const { fetchEx } = require("./endpoints.js")
 const Common = require("./common.js")
-const mainStore = require("./mainStore.js")
 
 function fillNewMatchResults(duel) {
     MainStore.matchResults = {}
@@ -34,7 +33,7 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
     MainStore.duel = new Duel(names.length)
 
     if (createNewBracket === true) {
-        fillNewMatchResults(d)
+        fillNewMatchResults(MainStore.duel)
     }
 
     for (let resultId in MainStore.matchResults) {
@@ -57,7 +56,9 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
             score: [
                 result && result.score[0] || 0,
                 result && result.score[1] || 0
-            ]
+            ],
+            isFinal: result.isFinal,
+            isCurrent: MainStore.currentMatchId === id
         }
 
         for (let player of match.p) {
@@ -118,6 +119,9 @@ module.exports.updateScores = function() {
             reacketMatch.score[0] = result.score[0]
             reacketMatch.score[1] = result.score[1]
         }
+
+        reacketMatch.isFinal = result.isFinal
+        reacketMatch.isCurrent = MainStore.currentMatchId === id
     }
 }
 
@@ -138,9 +142,9 @@ module.exports.updateEventInfoFromAws = function() {
 }
 
 module.exports.reacketIdToDynamoId = function(id) {
-    return id.replace(/\./g, "_")
+    return id && id.replace(/\./g, "_")
 }
 
 module.exports.dynamoIdToReacketId = function(id) {
-    return id.replace(/_/g, ".")
+    return id && id.replace(/_/g, ".")
 }

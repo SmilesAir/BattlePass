@@ -5,7 +5,8 @@ let urls = {
     SETUP_GET_EVENTS: "{path}/setupGetEvents",
     SETUP_GET_EVENT: "{path}/setupGetEvent/{eventName}",
     GET_CURRENT_EVENT_INFO: "{path}/getCurrentEventInfo",
-    SET_CURRENT_MATCH: "{path}/setCurrentMatch/{eventName}/matchId/{matchId}"
+    SET_CURRENT_MATCH: "{path}/setCurrentMatch/{eventName}/matchId/{matchId}",
+    UPDATE_MATCH_SCORE: "{path}/updateMatchScore/{eventName}/matchId/{matchId}"
 }
 
 function buildUrl(urlKey, pathParams, queryParams) {

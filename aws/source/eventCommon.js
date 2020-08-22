@@ -173,8 +173,6 @@ module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async 
     let eventName = decodeURIComponent(event.pathParameters.eventName)
     let matchId = decodeURIComponent(event.pathParameters.matchId)
 
-    console.log(eventName, matchId)
-
     let params = {
         TableName: process.env.EVENT_TABLE,
         Key: {"key": eventName},
@@ -182,18 +180,72 @@ module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async 
         ExpressionAttributeValues: {
             ":id": matchId
         },
-        ReturnValues: "ALL_NEW"
+        ReturnValues: "NONE"
     }
     return docClient.update(params).promise().then((resp) => {
-        console.log(resp)
         return {
             success: true
         }
     }).catch((error) => {
-        console.log("error", error)
         return {
             success: false,
             message: error
         }
     })
+})}
+
+module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let matchId = decodeURIComponent(event.pathParameters.matchId)
+    let request = JSON.parse(event.body) || {}
+
+    if (request.isFinal !== undefined) {
+        let params = {
+            TableName: process.env.EVENT_TABLE,
+            Key: {"key": eventName},
+            UpdateExpression: `set results.#matchId.isFinal = :isFinal`,
+            ExpressionAttributeNames: {
+                "#matchId": matchId
+            },
+            ExpressionAttributeValues: {
+                ":isFinal": request.isFinal
+            },
+            ReturnValues: "NONE"
+        }
+        return docClient.update(params).promise().then((resp) => {
+            console.log("response", JSON.stringify(resp))
+            return {
+                success: true
+            }
+        }).catch((error) => {
+            console.log("error", error)
+            return {
+                success: false,
+                message: error
+            }
+        })
+    } else {
+        let params = {
+            TableName: process.env.EVENT_TABLE,
+            Key: {"key": eventName},
+            UpdateExpression: `set results.#matchId.score[${request.playerIndex}] = results.#matchId.score[${request.playerIndex}] + :pointDelta`,
+            ExpressionAttributeNames: {
+                "#matchId": matchId
+            },
+            ExpressionAttributeValues: {
+                ":pointDelta": request.pointDelta
+            },
+            ReturnValues: "NONE"
+        }
+        return docClient.update(params).promise().then(() => {
+            return {
+                success: true
+            }
+        }).catch((error) => {
+            return {
+                success: false,
+                message: error
+            }
+        })
+    }
 })}

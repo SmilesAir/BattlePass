@@ -31,7 +31,7 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
             console.error("Failed to set current match", error)
         })
 
-        this.forceUpdate()
+        Common.updateScores()
     }
 
     getExpandElement(id) {
@@ -44,12 +44,45 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
         MainStore.matchResults[Common.reacketIdToDynamoId(MainStore.currentMatchId)].score[playerIndex] += pointDelta
 
         Common.updateScores()
+
+        fetchEx("UPDATE_MATCH_SCORE", { eventName: MainStore.eventName, matchId: Common.reacketIdToDynamoId(MainStore.currentMatchId) }, undefined, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                playerIndex: playerIndex,
+                pointDelta: pointDelta
+            })
+        }).catch((error) => {
+            console.error("Failed to update match", error)
+        })
     }
 
-    onFinalize() {
-        MainStore.matchResults[Common.reacketIdToDynamoId(MainStore.currentMatchId)].isFinal = true
+    isCurrentMatchFinal() {
+        return MainStore.matchResults[Common.reacketIdToDynamoId(MainStore.currentMatchId)].isFinal
+    }
+
+    onFinalUpdate(isFinal) {
+        MainStore.matchResults[Common.reacketIdToDynamoId(MainStore.currentMatchId)].isFinal = isFinal
 
         Common.updateScores()
+
+        fetchEx("UPDATE_MATCH_SCORE", { eventName: MainStore.eventName, matchId: Common.reacketIdToDynamoId(MainStore.currentMatchId) }, undefined, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                isFinal: isFinal
+            })
+        }).catch((error) => {
+            console.error("Failed to update match", error)
+        })
+    }
+
+    isScoreAboveZero(playerIndex) {
+        return MainStore.matchResults[Common.reacketIdToDynamoId(MainStore.currentMatchId)].score[playerIndex] > 0
     }
 
     getRuntimeControls() {
@@ -63,12 +96,12 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
                         <h2>{MainStore.currentMatchId}</h2>
                         <div>{reacketMatch.players[0].name}</div>
                         <button onClick={() => this.onRuntimePoint(0, 1)}>+</button>
-                        <button onClick={() => this.onRuntimePoint(0, -1)}>-</button>
+                        <button onClick={() => this.onRuntimePoint(0, -1)} disabled={!this.isScoreAboveZero(0)}>-</button>
                         <div>{reacketMatch.players[1].name}</div>
                         <button onClick={() => this.onRuntimePoint(1, 1)}>+</button>
-                        <button onClick={() => this.onRuntimePoint(1, -1)}>-</button>
+                        <button onClick={() => this.onRuntimePoint(1, -1)} disabled={!this.isScoreAboveZero(1)}>-</button>
                         <div>Finalize</div>
-                        <button onClick={() => this.onFinalize()}>Finalize Match</button>
+                        <button onClick={() => this.onFinalUpdate(!this.isCurrentMatchFinal())}>{ this.isCurrentMatchFinal() ? "Unfinalize Match" : "Finalize Match" }</button>
                     </div>
                 )
             }

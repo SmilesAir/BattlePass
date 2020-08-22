@@ -87,6 +87,13 @@ functions:
           path: setCurrentMatch/{eventName}/matchId/{matchId}
           method: post
           cors: true
+  updateMatchScore:
+    handler: source/eventCommon.updateMatchScore
+    events:
+      - http:
+          path: updateMatchScore/{eventName}/matchId/{matchId}
+          method: post
+          cors: true
 
 resources:
   Resources:
