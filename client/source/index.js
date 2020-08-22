@@ -119,7 +119,7 @@ MainStore.Reacket = Reacket
         return (
             <div>
                 <Setup />
-                <Reacket matches={MainStore.matches} />
+                <Reacket matches={MainStore.reacketMatches} />
             </div>
         )
     }

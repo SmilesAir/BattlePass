@@ -14,12 +14,12 @@ module.exports.setupNewEvent = (e, c, cb) => { Common.handler(e, c, cb, async (e
     await docClient.get(getParams).promise().then((response) => {
         if (!Common.isEmptyObject(response)) {
             if (response.Item.locked !== true) {
-                return putEventData(eventName, request.names)
+                return createNewEvent(eventName, request.names, request.results)
             } else {
                 throw new "Trying to overwrite locked event"
             }
         } else {
-            return putEventData(eventName, request.names)
+            return createNewEvent(eventName, request.names, request.results)
         }
     }).catch((error) => {
         console.error(error)
@@ -35,14 +35,15 @@ module.exports.setupNewEvent = (e, c, cb) => { Common.handler(e, c, cb, async (e
     }
 })}
 
-function putEventData(eventName, names) {
+function createNewEvent(eventName, names, results) {
     let putParams = {
         TableName : process.env.EVENT_TABLE,
         Item: {
             key: eventName,
             eventName: eventName,
             createdTime: Date.now(),
-            names: names
+            names: names,
+            results: results
         }
     }
 
@@ -166,4 +167,33 @@ module.exports.setupGetEvent = (e, c, cb) => { Common.handler(e, c, cb, async (e
     let eventName = decodeURIComponent(event.pathParameters.eventName)
 
     return getEventInfo(eventName)
+})}
+
+module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let matchId = decodeURIComponent(event.pathParameters.matchId)
+
+    console.log(eventName, matchId)
+
+    let params = {
+        TableName: process.env.EVENT_TABLE,
+        Key: {"key": eventName},
+        UpdateExpression: "set currentMatchId = :id",
+        ExpressionAttributeValues: {
+            ":id": matchId
+        },
+        ReturnValues: "ALL_NEW"
+    }
+    return docClient.update(params).promise().then((resp) => {
+        console.log(resp)
+        return {
+            success: true
+        }
+    }).catch((error) => {
+        console.log("error", error)
+        return {
+            success: false,
+            message: error
+        }
+    })
 })}

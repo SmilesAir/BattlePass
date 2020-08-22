@@ -5,6 +5,7 @@ const MobxReact = require("mobx-react")
 
 const { fetchEx } = require("./endpoints.js")
 const Common = require("./common.js")
+const mainStore = require("./mainStore.js")
 
 module.exports = @MobxReact.observer class Setup extends React.Component {
     constructor() {
@@ -76,7 +77,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
     onNamesChanged(event) {
         this.state.namesText = event.target.value
         this.setState(this.state)
-        Common.updateBracketFromNamesString(this.state.namesText)
+        Common.updateBracketFromNamesString(this.state.namesText, true)
     }
 
     swapPlayer(name) {
@@ -99,7 +100,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         }
 
         this.setState(this.state)
-        Common.updateBracketFromNamesString(this.state.namesText)
+        Common.updateBracketFromNamesString(this.state.namesText, true)
     }
 
     getPlayerEntries() {
@@ -130,7 +131,10 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ names: this.state.namesText.split("\n") })
+            body: JSON.stringify({
+                names: this.state.namesText.split("\n"),
+                results: mainStore.matchResults
+            })
         }).then((response) => {
             console.log(response)
             if (response.status >= 400) {

@@ -2,7 +2,8 @@
 const Mobx = require("mobx")
 
 module.exports = Mobx.observable({
-    matches: [],
+    eventName: undefined,
+    reacketMatches: [],
     matchResults: {},
     isLoggedIn: false,
     cognitoUsername: undefined,
@@ -10,5 +11,7 @@ module.exports = Mobx.observable({
     displayName: undefined,
     isAdmin: true,
     url: undefined,
-    currentMatch: undefined
+    currentMatchId: undefined,
+    duel: undefined,
+    namesArray: []
 })

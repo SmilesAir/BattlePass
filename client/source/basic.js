@@ -23,7 +23,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         return (
             <div>
                 <EventInfo />
-                <MainStore.Reacket matches={MainStore.matches} />
+                <MainStore.Reacket matches={MainStore.reacketMatches} />
             </div>
         )
     }

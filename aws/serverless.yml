@@ -80,6 +80,13 @@ functions:
           path: upgradeUser/{username}
           method: post
           cors: true
+  setCurrentMatch:
+    handler: source/eventCommon.setCurrentMatch
+    events:
+      - http:
+          path: setCurrentMatch/{eventName}/matchId/{matchId}
+          method: post
+          cors: true
 
 resources:
   Resources:

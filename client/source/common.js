@@ -4,12 +4,23 @@ const Duel = require("duel")
 const MainStore = require("./mainStore.js")
 const { MatchResult } = require("./dataClasses.js")
 const { fetchEx } = require("./endpoints.js")
+const Common = require("./common.js")
+const mainStore = require("./mainStore.js")
 
-module.exports.updateBracketFromNamesString = function(namesString) {
-    module.exports.updateBracketFromNames(namesString.split("\n"))
+function fillNewMatchResults(duel) {
+    MainStore.matchResults = {}
+
+    for (let match of duel.matches) {
+        let result = new MatchResult(match.id.s, match.id.r, match.id.m, 0, 0, false)
+        MainStore.matchResults[result.dynamodId] = result
+    }
 }
 
-module.exports.updateBracketFromNames = function(namesArray) {
+module.exports.updateBracketFromNamesString = function(namesString, createNewBracket) {
+    module.exports.updateBracketFromNames(namesString.split("\n"), createNewBracket)
+}
+
+module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
     let names = namesArray.filter((name) => {
         return name !== undefined && name.length > 0
     })
@@ -18,25 +29,32 @@ module.exports.updateBracketFromNames = function(namesArray) {
         return
     }
 
-    let d = new Duel(names.length)
+    MainStore.namesArray = namesArray
+
+    MainStore.duel = new Duel(names.length)
+
+    if (createNewBracket === true) {
+        fillNewMatchResults(d)
+    }
 
     for (let resultId in MainStore.matchResults) {
         let result = MainStore.matchResults[resultId]
         if (result.isFinal) {
-            d.score(result.duelId, result.score)
+            MainStore.duel.score(result.duelId, result.score)
         }
     }
 
-    MainStore.matches.splice(0, MainStore.matches.length)
-    for (let match of d.matches) {
+    MainStore.reacketMatches.splice(0, MainStore.reacketMatches.length)
+    for (let match of MainStore.duel.matches) {
         let id = `${match.id.s}.${match.id.r}.${match.id.m}`
-        let result = MainStore.matchResults[id]
+        let dynamoId = Common.reacketIdToDynamoId(id)
+        let result = MainStore.matchResults[dynamoId]
         let newMatch = {
             id: id,
-            round: match.id.s === 2 ? d.p : match.id.r,
+            round: match.id.s === 2 ? MainStore.duel.p : match.id.r,
             match: match.id.m,
             players: [],
-            "score": [
+            score: [
                 result && result.score[0] || 0,
                 result && result.score[1] || 0
             ]
@@ -65,7 +83,41 @@ module.exports.updateBracketFromNames = function(namesArray) {
             }
         }
 
-        MainStore.matches.push(newMatch)
+        MainStore.reacketMatches.push(newMatch)
+    }
+}
+
+module.exports.updateScores = function() {
+    for (let resultId in MainStore.matchResults) {
+        let result = MainStore.matchResults[resultId]
+        if (result.isFinal) {
+            MainStore.duel.score(result.duelId, result.score)
+        }
+    }
+
+    for (let duelMatch of MainStore.duel.matches) {
+        let id = `${duelMatch.id.s}.${duelMatch.id.r}.${duelMatch.id.m}`
+        let result = MainStore.matchResults[Common.reacketIdToDynamoId(id)]
+        let reacketMatch = MainStore.reacketMatches.find((match) => {
+            return match.id === id
+        })
+
+        for (let playerIndex = 0; playerIndex < duelMatch.p.length; ++playerIndex) {
+            let duelPlayer = duelMatch.p[playerIndex]
+
+            if (duelPlayer !== 0 && duelPlayer !== -1) {
+                reacketMatch.players[playerIndex] = {
+                    "id": duelPlayer,
+                    "name": MainStore.namesArray[duelPlayer - 1],
+                    "seed": duelPlayer
+                }
+            }
+        }
+
+        if (reacketMatch !== undefined && result !== undefined) {
+            reacketMatch.score[0] = result.score[0]
+            reacketMatch.score[1] = result.score[1]
+        }
     }
 }
 
@@ -78,6 +130,17 @@ module.exports.updateEventInfoFromAws = function() {
     }).then((response) => {
         return response.json()
     }).then((response) => {
+        MainStore.eventName = response.info.eventName
+        MainStore.currentMatchId = module.exports.dynamoIdToReacketId(response.info.currentMatchId)
+        MainStore.matchResults = response.info.results
         module.exports.updateBracketFromNames(response.info.names)
     })
+}
+
+module.exports.reacketIdToDynamoId = function(id) {
+    return id.replace(/\./g, "_")
+}
+
+module.exports.dynamoIdToReacketId = function(id) {
+    return id.replace(/_/g, ".")
 }
