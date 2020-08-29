@@ -6,11 +6,17 @@ let urls = {
     SETUP_GET_EVENT: "{path}/setupGetEvent/{eventName}",
     GET_CURRENT_EVENT_INFO: "{path}/getCurrentEventInfo",
     SET_CURRENT_MATCH: "{path}/setCurrentMatch/{eventName}/matchId/{matchId}",
-    UPDATE_MATCH_SCORE: "{path}/updateMatchScore/{eventName}/matchId/{matchId}"
+    UPDATE_MATCH_SCORE: "{path}/updateMatchScore/{eventName}/matchId/{matchId}",
+    GET_USER_DATA: "{path}/getUserData"
 }
 
-function buildUrl(urlKey, pathParams, queryParams) {
-    let path = __STAGE__ === "DEVELOPMENT" ? "https://6rcysbv7wb.execute-api.us-west-2.amazonaws.com/development" : "https://w0wkbj0dd9.execute-api.us-west-2.amazonaws.com"
+function buildUrl(isAuth, urlKey, pathParams, queryParams) {
+    let path = undefined
+    if (isAuth) {
+        path = __STAGE__ === "DEVELOPMENT" ? "https://odnou7cv5a.execute-api.us-west-2.amazonaws.com" : "https://w0wkbj0dd9.execute-api.us-west-2.amazonaws.com"
+    } else {
+        path = __STAGE__ === "DEVELOPMENT" ? "https://6rcysbv7wb.execute-api.us-west-2.amazonaws.com/development" : "https://w0wkbj0dd9.execute-api.us-west-2.amazonaws.com"
+    }
 
     let pathReplaceData = {
         "path": path
@@ -35,5 +41,9 @@ function buildUrl(urlKey, pathParams, queryParams) {
 }
 
 module.exports.fetchEx = function(key, pathParams, queryParams, options) {
-    return fetch(buildUrl(key, pathParams, queryParams), options)
+    return fetch(buildUrl(false, key, pathParams, queryParams), options)
+}
+
+module.exports.fetchAuth = function(key, pathParams, queryParams, options) {
+    return fetch(buildUrl(true, key, pathParams, queryParams), options)
 }

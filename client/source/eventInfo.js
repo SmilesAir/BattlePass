@@ -15,7 +15,7 @@ module.exports = @MobxReact.observer class EventInfo extends React.Component {
     render() {
         return (
             <div>
-                Username: {MainStore.displayName}
+                {MainStore.eventName} | Username: {MainStore.displayName} | Raffle Tickets: {MainStore.userData && MainStore.userData.raffleTicketCount || 0}
             </div>
         )
     }

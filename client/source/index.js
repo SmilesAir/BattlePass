@@ -14,6 +14,7 @@ const Setup = require("./setup.js")
 const Admin = require("./admin.js")
 const Basic = require("./basic.js")
 const Runtime = require("./runtime.js")
+const Common = require("./common.js")
 
 require("./index.less")
 
@@ -28,6 +29,7 @@ Amplify.configure({
 
 MainStore.url = new URL(window.location.href)
 MainStore.Reacket = Reacket
+MainStore.Auth = Auth
 
 @MobxReact.observer class AccountLogin extends React.Component {
     constructor() {
@@ -37,6 +39,8 @@ MainStore.Reacket = Reacket
             MainStore.isLoggedIn = true
             MainStore.cognitoUsername = data.username
             MainStore.displayName = data.attributes.name
+
+            Common.fillUserData()
         }).catch(() => {
             MainStore.isLoggedIn = false
         })
@@ -44,7 +48,6 @@ MainStore.Reacket = Reacket
         Hub.listen("auth", (data) => {
             const { payload } = data
             this.onAuthEvent(payload)
-            console.log("A new auth event has happened: ", data.payload.data.username + " has " + data.payload.event, data)
         })
     }
 
@@ -54,6 +57,8 @@ MainStore.Reacket = Reacket
             MainStore.cognitoUsername = payload.data.username
             MainStore.displayName = payload.data.attributes.name
             MainStore.showAuthenticator = false
+
+            Common.fillUserData()
         } else if (payload.event === "signOut") {
             MainStore.isLoggedIn = false
             MainStore.cognitoUsername = undefined
@@ -131,6 +136,10 @@ MainStore.Reacket = Reacket
     }
 
     render() {
+        if (!Common.isAdmin()) {
+            return this.getBasic()
+        }
+
         switch (this.state.view) {
             case "basic":
                 return this.getBasic()

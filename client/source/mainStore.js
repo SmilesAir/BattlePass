@@ -9,9 +9,9 @@ module.exports = Mobx.observable({
     cognitoUsername: undefined,
     showAuthenticator: false,
     displayName: undefined,
-    isAdmin: true,
     url: undefined,
     currentMatchId: undefined,
     duel: undefined,
-    namesArray: []
+    namesArray: [],
+    userData: undefined
 })

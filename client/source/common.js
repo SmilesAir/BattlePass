@@ -3,7 +3,7 @@ const Duel = require("duel")
 
 const MainStore = require("./mainStore.js")
 const { MatchResult } = require("./dataClasses.js")
-const { fetchEx } = require("./endpoints.js")
+const { fetchEx, fetchAuth } = require("./endpoints.js")
 const Common = require("./common.js")
 
 function fillNewMatchResults(duel) {
@@ -147,4 +147,27 @@ module.exports.reacketIdToDynamoId = function(id) {
 
 module.exports.dynamoIdToReacketId = function(id) {
     return id && id.replace(/_/g, ".")
+}
+
+module.exports.fillUserData = function() {
+    MainStore.Auth.currentAuthenticatedUser().then((data) => {
+        return fetchAuth("GET_USER_DATA", undefined, undefined, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": data.signInUserSession.accessToken.jwtToken
+            }
+        }).then((response) => {
+            return response.json()
+        }).then((response) => {
+            console.log("userData", response)
+            MainStore.userData = response.data
+        }).catch((error) => {
+            console.log("GET_USER_DATA Error", error)
+        })
+    })
+}
+
+module.exports.isAdmin = function() {
+    return MainStore.userData && MainStore.userData.isAdmin || false
 }

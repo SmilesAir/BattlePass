@@ -3,7 +3,7 @@
 const React = require("react")
 const MobxReact = require("mobx-react")
 
-const MainStore = require("./mainStore.js")
+const Common = require("./common.js")
 
 require("./admin.less")
 
@@ -15,7 +15,7 @@ module.exports = @MobxReact.observer class Admin extends React.Component {
     render() {
         const urlBase = "http://192.168.0.197:8080/index.html?admin="
 
-        if (MainStore.isAdmin) {
+        if (Common.isAdmin()) {
             return (
                 <div className="admin">
                     Admin Panel

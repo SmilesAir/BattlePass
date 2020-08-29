@@ -12,6 +12,25 @@ provider:
     USER_TABLE: ${self:service}-${self:provider.stage}-userTable
     DOMAIN_SUFFIX: smilesair-gitis
 
+  httpApi:
+    payload: '2.0'
+    cors: true
+    authorizers:
+      serviceAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl:
+          Fn::Join:
+          - ''
+          - - 'https://cognito-idp.'
+            - '${opt:region, self:provider.region}'
+            - '.amazonaws.com/'
+            - Ref: serviceUserPool
+        audience:
+          - Ref: serviceUserPoolClient
+
+  logs:
+    httpApi: true
+
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -66,20 +85,6 @@ functions:
           path: getCurrentEventInfo
           method: get
           cors: true
-  setupNewUser:
-    handler: source/setupNewUser.handler
-    events:
-      - http:
-          path: setupNewUser/{username}
-          method: post
-          cors: true
-  upgradeUser:
-    handler: source/upgradeUser.handler
-    events:
-      - http:
-          path: upgradeUser/{username}
-          method: post
-          cors: true
   setCurrentMatch:
     handler: source/eventCommon.setCurrentMatch
     events:
@@ -94,6 +99,20 @@ functions:
           path: updateMatchScore/{eventName}/matchId/{matchId}
           method: post
           cors: true
+  getUserData:
+    handler: source/userCommon.getUserData
+    events:
+      - httpApi:
+          path: /getUserData
+          method: get
+          authorizer: serviceAuthorizer
+  upgradeUser:
+    handler: source/userCommon.upgradeUser
+    events:
+      - httpApi:
+          path: /upgradeUser
+          method: post
+          authorizer: serviceAuthorizer
 
 resources:
   Resources:
@@ -123,6 +142,8 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    HttpApi:
+      DependsOn: serviceUserPool
     serviceUserPool:
       Type: AWS::Cognito::UserPool
       Properties:
