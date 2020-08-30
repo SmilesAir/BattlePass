@@ -13,9 +13,10 @@ module.exports = @MobxReact.observer class EventInfo extends React.Component {
     }
 
     render() {
+        let ticketCount = MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].raffleTicketCount
         return (
             <div>
-                {MainStore.eventName} | Username: {MainStore.displayName} | Raffle Tickets: {MainStore.userData && MainStore.userData.raffleTicketCount || 0}
+                {MainStore.eventName} | Username: {MainStore.displayName} | Raffle Tickets: {ticketCount || 0}
             </div>
         )
     }

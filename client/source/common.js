@@ -151,7 +151,7 @@ module.exports.dynamoIdToReacketId = function(id) {
 
 module.exports.fillUserData = function() {
     MainStore.Auth.currentAuthenticatedUser().then((data) => {
-        return fetchAuth("GET_USER_DATA", undefined, undefined, {
+        return fetchAuth("GET_USER_DATA", { eventName: MainStore.eventName }, undefined, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -160,7 +160,6 @@ module.exports.fillUserData = function() {
         }).then((response) => {
             return response.json()
         }).then((response) => {
-            console.log("userData", response)
             MainStore.userData = response.data
         }).catch((error) => {
             console.log("GET_USER_DATA Error", error)

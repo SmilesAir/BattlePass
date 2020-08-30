@@ -20,25 +20,6 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
     }
 
     componentDidMount() {
-        // // Test Data
-        // let result = new MatchResult(1, 1, 1, 2, 0, true)
-        // MainStore.matchResults[result.id] = result
-        // result = new MatchResult(1, 1, 2, 2, 0, true)
-        // MainStore.matchResults[result.id] = result
-        // result = new MatchResult(1, 1, 3, 2, 0, true)
-        // MainStore.matchResults[result.id] = result
-        // result = new MatchResult(1, 1, 4, 2, 0, true)
-        // MainStore.matchResults[result.id] = result
-
-        // result = new MatchResult(1, 2, 1, 2, 0, true)
-        // MainStore.matchResults[result.id] = result
-        // result = new MatchResult(1, 2, 2, 2, 0, true)
-        // MainStore.matchResults[result.id] = result
-
-        // this.state.namesText = "a\nb\nc\nd\ne\nf\ng\nh"
-        // this.setState(this.state)
-        // Common.updateBracketFromNamesString(this.state.namesText)
-
         fetchEx("SETUP_GET_EVENTS", undefined, undefined, {
             method: "GET",
             headers: {

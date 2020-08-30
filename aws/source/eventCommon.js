@@ -43,7 +43,8 @@ function createNewEvent(eventName, names, results) {
             eventName: eventName,
             createdTime: Date.now(),
             names: names,
-            results: results
+            results: results,
+            raffleTicketCount: 0
         }
     }
 
@@ -85,7 +86,7 @@ module.exports.setupGetEvents = (e, c, cb) => { Common.handler(e, c, cb, async (
 })}
 
 module.exports.getCurrentEventInfo = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
-    let masterInfo = await getMasterInfo()
+    let masterInfo = await module.exports.getMasterInfo()
 
     if (masterInfo.data.current === null) {
         return {
@@ -106,7 +107,7 @@ module.exports.getCurrentEventInfo = (e, c, cb) => { Common.handler(e, c, cb, as
     })
 })}
 
-function getMasterInfo() {
+module.exports.getMasterInfo = function() {
     let getParams = {
         TableName: process.env.EVENT_TABLE,
         Key: {"key": "masterInfo"}
@@ -134,7 +135,7 @@ module.exports.setupSetCurrentEvent = (e, c, cb) => { Common.handler(e, c, cb, a
         }
     }
 
-    let masterInfo = await getMasterInfo()
+    let masterInfo = await module.exports.getMasterInfo()
     masterInfo.data.current = eventName
     masterInfo.lastUpdatedAt = Date.now()
 
