@@ -52,6 +52,8 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
             return eventResponse.json()
         }).then((eventResponse) => {
             MainStore.currentBracket = eventResponse.currentBracket
+            MainStore.brackets = eventResponse.brackets
+            MainStore.currentMatchId = Common.dynamoIdToReacketId(Common.getCurrentBracket().currentMatchId)
             this.state.bracketName = eventResponse.currentBracket
             this.state.brackets = eventResponse.brackets
             this.state.bracketNames = []
@@ -60,7 +62,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
             }
             if (!this.isBracketInvalid()) {
                 this.state.namesText = this.state.brackets[this.state.bracketName].names.join("\n")
-                Common.updateBracketFromNamesString(this.state.namesText, true)
+                Common.updateBracketFromNamesString(this.state.namesText, false)
             }
 
             this.setState(this.state)
