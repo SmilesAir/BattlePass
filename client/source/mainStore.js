@@ -4,7 +4,7 @@ const Mobx = require("mobx")
 module.exports = Mobx.observable({
     eventName: undefined,
     reacketMatches: [],
-    matchResults: {},
+    brackets: {},
     isLoggedIn: false,
     cognitoUsername: undefined,
     showAuthenticator: false,

@@ -1,13 +1,15 @@
 
 let urls = {
     SETUP_NEW_EVENT: "{path}/setupNewEvent/{eventName}",
+    SETUP_NEW_BRACKET: "{path}/setupNewBracket/{eventName}/bracket/{bracketName}",
     SETUP_SET_CURRENT_EVENT: "{path}/setupSetCurrentEvent/{eventName}",
+    SETUP_SET_CURRENT_BRACKET: "{path}/setupSetCurrentBracket/{eventName}/bracket/{bracketName}",
     SETUP_GET_EVENTS: "{path}/setupGetEvents",
     SETUP_GET_EVENT: "{path}/setupGetEvent/{eventName}",
     GET_CURRENT_EVENT_INFO: "{path}/getCurrentEventInfo",
-    SET_CURRENT_MATCH: "{path}/setCurrentMatch/{eventName}/matchId/{matchId}",
-    UPDATE_MATCH_SCORE: "{path}/updateMatchScore/{eventName}/matchId/{matchId}",
-    GET_USER_DATA: "{path}/getUserData"
+    SET_CURRENT_MATCH: "{path}/setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}",
+    UPDATE_MATCH_SCORE: "{path}/updateMatchScore/{eventName}/bracket/{bracketName}/matchId/{matchId}",
+    GET_USER_DATA: "{path}/getUserData",
 }
 
 function buildUrl(isAuth, urlKey, pathParams, queryParams) {

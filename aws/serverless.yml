@@ -57,11 +57,25 @@ functions:
           path: setupNewEvent/{eventName}
           method: post
           cors: true
+  setupNewBracket:
+    handler: source/eventCommon.setupNewBracket
+    events:
+      - http:
+          path: setupNewBracket/{eventName}/bracket/{bracketName}
+          method: post
+          cors: true
   setupSetCurrentEvent:
     handler: source/eventCommon.setupSetCurrentEvent
     events:
       - http:
           path: setupSetCurrentEvent/{eventName}
+          method: post
+          cors: true
+  setupSetCurrentBracket:
+    handler: source/eventCommon.setupSetCurrentBracket
+    events:
+      - http:
+          path: setupSetCurrentBracket/{eventName}/bracket/{bracketName}
           method: post
           cors: true
   setupGetEvents:
@@ -89,14 +103,14 @@ functions:
     handler: source/eventCommon.setCurrentMatch
     events:
       - http:
-          path: setCurrentMatch/{eventName}/matchId/{matchId}
+          path: setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}
           method: post
           cors: true
   updateMatchScore:
     handler: source/eventCommon.updateMatchScore
     events:
       - http:
-          path: updateMatchScore/{eventName}/matchId/{matchId}
+          path: updateMatchScore/{eventName}/bracket/{bracketName}/matchId/{matchId}
           method: post
           cors: true
   getUserData:

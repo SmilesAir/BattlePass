@@ -5,7 +5,7 @@ const MobxReact = require("mobx-react")
 
 const { fetchEx } = require("./endpoints.js")
 const Common = require("./common.js")
-const mainStore = require("./mainStore.js")
+const MainStore = require("./mainStore.js")
 
 module.exports = @MobxReact.observer class Setup extends React.Component {
     constructor() {
@@ -13,9 +13,11 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
 
         this.state = {
             eventName: "",
+            bracketName: "",
             namesText: "",
             swapName: undefined,
-            isCreatingNewEvent: false
+            isCreatingNewEvent: false,
+            isCreatingNewBracket: false
         }
     }
 
@@ -49,9 +51,19 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         }).then((eventResponse) => {
             return eventResponse.json()
         }).then((eventResponse) => {
-            this.state.namesText = eventResponse.names.join("\n")
+            MainStore.currentBracket = eventResponse.currentBracket
+            this.state.bracketName = eventResponse.currentBracket
+            this.state.brackets = eventResponse.brackets
+            this.state.bracketNames = []
+            for (let bracketName in eventResponse.brackets) {
+                this.state.bracketNames.push(bracketName)
+            }
+            if (!this.isBracketInvalid()) {
+                this.state.namesText = this.state.brackets[this.state.bracketName].names.join("\n")
+                Common.updateBracketFromNamesString(this.state.namesText, true)
+            }
+
             this.setState(this.state)
-            Common.updateBracketFromNames(eventResponse.names)
         })
     }
 
@@ -111,11 +123,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                names: this.state.namesText.split("\n"),
-                results: mainStore.matchResults
-            })
+            }
         }).then((response) => {
             console.log(response)
             if (response.status >= 400) {
@@ -138,7 +146,9 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         this.state.eventName = event.target.value
         this.setState(this.state)
 
-        this.fetchAndFillEventData(event.target.value)
+        if (!this.isEventInvalid()) {
+            this.fetchAndFillEventData(event.target.value)
+        }
     }
 
     getEventsDropDown() {
@@ -208,6 +218,103 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         )
     }
 
+    onSelectedBracketChanged(event) {
+        this.state.bracketName = event.target.value
+        if (!this.isBracketInvalid()) {
+            this.state.namesText = this.state.brackets[this.state.bracketName].names.join("\n")
+            MainStore.currentBracket = this.state.bracketName
+        }
+
+        this.setState(this.state)
+
+        Common.updateBracketFromNamesString(this.state.namesText, false)
+    }
+
+    getBracketsDropDown() {
+        let options = [ <option key="Select Bracket">Select Bracket</option> ]
+        if (this.state.bracketNames !== undefined) {
+            options = options.concat(this.state.bracketNames.map((bracketName) => {
+                return <option key={bracketName} value={bracketName}>{bracketName}</option>
+            }))
+        }
+
+        return (
+            <div>
+                <select value={this.state.bracketName} onChange={(event) => this.onSelectedBracketChanged(event)}>
+                    { options }
+                </select>
+            </div>
+        )
+    }
+
+    onNewBracketTextChanged(event) {
+        this.state.bracketName = event.target.value
+        this.setState(this.state)
+    }
+
+    onCreateNewBracket() {
+        this.state.isCreatingNewBracket = false
+        this.setState(this.state)
+
+        return fetchEx("SETUP_NEW_BRACKET", { eventName: this.state.eventName, bracketName: this.state.bracketName }, undefined, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                names: this.state.namesText.split("\n"),
+                results: MainStore.brackets[MainStore.currentBracket].results
+            })
+        }).then((response) => {
+            console.log(response)
+            if (response.status >= 400) {
+                throw response.message
+            } else {
+                return response.json()
+            }
+        }).then((response) => {
+            if (response.success === true) {
+                alert("Bracket Uploaded Successfully")
+            } else {
+                alert(`Failed to upload Bracket!\n${response.message}`)
+            }
+        }).catch((error) => {
+            alert(`Failed to upload Bracket!\n${error}`)
+        })
+    }
+
+    getNewBracketElement() {
+        return (
+            <div>
+                <label>New Bracket Name:</label>
+                <input type="text" value={this.state.bracketName} onChange={(event) => this.onNewBracketTextChanged(event)} />
+                <button onClick={() => this.onCreateNewBracket()}>Create New Bracket</button>
+            </div>
+        )
+    }
+
+    setCreatingNewBracket() {
+        this.state.isCreatingNewBracket = true
+        this.setState(this.state)
+    }
+
+    setCurrentBracket() {
+        return fetchEx("SETUP_SET_CURRENT_BRACKET", { eventName: this.state.eventName, bracketName: this.state.bracketName }, undefined, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+    }
+
+    isBracketInvalid() {
+        return this.state.bracketName === undefined || this.state.bracketName.length === 0 || this.state.bracketName === "Select Bracket"
+    }
+
+    isEventInvalid() {
+        return this.state.eventName === undefined || this.state.eventName.length === 0 || this.state.eventName === "Select Event"
+    }
+
     render() {
         return (
             <div>
@@ -216,8 +323,11 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
                 </h1>
                 {this.state.isCreatingNewEvent ? this.getNewEventElement() : this.getEventsDropDown()}
                 <button onClick={() => this.setCreatingNewEvent()}>Create New Event</button>
-                <button onClick={() => this.setCurrentEvent()} disabled={this.state.eventName === undefined || this.state.eventName.length === 0 || this.state.eventName === "Select Event"}>Set as Current Event</button>
-                <button onClick={() => this.uploadEventData()}>Upload Event</button>
+                <button onClick={() => this.setCurrentEvent()} disabled={this.isEventInvalid()}>Set as Current Event</button>
+                {this.state.isCreatingNewBracket ? this.getNewBracketElement() : this.getBracketsDropDown()}
+                <button onClick={() => this.onCreateNewBracket()} disabled={this.isBracketInvalid()}>Upload Bracket</button>
+                <button onClick={() => this.setCreatingNewBracket()}>Create New Bracket</button>
+                <button onClick={() => this.setCurrentBracket()} disabled={this.isBracketInvalid()}>Set as Current Bracket</button>
                 <div>
                     <div>Enter player names (1 per line)</div>
                     <textarea onChange={(event) => this.onNamesChanged(event)} value={this.state.namesText} />

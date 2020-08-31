@@ -4,7 +4,6 @@ let docClient = new AWS.DynamoDB.DocumentClient()
 const Common = require("./common.js")
 
 module.exports.setupNewEvent = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
-    let request = JSON.parse(event.body) || {}
     let eventName = decodeURIComponent(event.pathParameters.eventName)
 
     let getParams = {
@@ -14,12 +13,12 @@ module.exports.setupNewEvent = (e, c, cb) => { Common.handler(e, c, cb, async (e
     await docClient.get(getParams).promise().then((response) => {
         if (!Common.isEmptyObject(response)) {
             if (response.Item.locked !== true) {
-                return createNewEvent(eventName, request.names, request.results)
+                return createNewEvent(eventName)
             } else {
                 throw new "Trying to overwrite locked event"
             }
         } else {
-            return createNewEvent(eventName, request.names, request.results)
+            return createNewEvent(eventName)
         }
     }).catch((error) => {
         console.error(error)
@@ -35,21 +34,113 @@ module.exports.setupNewEvent = (e, c, cb) => { Common.handler(e, c, cb, async (e
     }
 })}
 
-function createNewEvent(eventName, names, results) {
+function createNewEvent(eventName) {
     let putParams = {
         TableName : process.env.EVENT_TABLE,
         Item: {
             key: eventName,
             eventName: eventName,
             createdTime: Date.now(),
-            names: names,
-            results: results,
-            raffleTicketCount: 0
+            currentBracket: undefined,
+            brackets: {},
+            raffleTicketCount: 0,
+            locked: true
         }
     }
 
     return docClient.put(putParams).promise()
 }
+
+module.exports.setupNewBracket = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let request = JSON.parse(event.body) || {}
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let bracketName = decodeURIComponent(event.pathParameters.bracketName)
+
+    let doUpdate = false
+    let getParams = {
+        TableName: process.env.EVENT_TABLE,
+        Key: {"key": eventName}
+    }
+    await docClient.get(getParams).promise().then((response) => {
+        let bracketData = response.Item.brackets[bracketName]
+        if (bracketData === undefined || bracketData.locked !== true) {
+            doUpdate = true
+        }
+    }).catch()
+
+    if (doUpdate) {
+        let updateParams = {
+            TableName: process.env.EVENT_TABLE,
+            Key: {"key": eventName},
+            UpdateExpression: "set brackets.#bracketName = :bracketData, currentBracket = :bracketName",
+            ExpressionAttributeNames: {
+                "#bracketName": bracketName
+            },
+            ExpressionAttributeValues: {
+                ":bracketName": bracketName,
+                ":bracketData": {
+                    names: request.names,
+                    results: request.results
+                }
+            },
+            ReturnValues: "NONE"
+        }
+        await docClient.update(updateParams).promise().catch((error) => {
+            throw error
+        })
+    }
+
+    return {
+        success: true
+    }
+})}
+
+module.exports.setupSetCurrentEvent = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+
+    let eventInfo = await getEventInfo(eventName)
+    if (Common.isEmptyObject(eventInfo)) {
+        return {
+            success: false,
+            message: `No event info by name of ${eventName}`
+        }
+    }
+
+    let masterInfo = await module.exports.getMasterInfo()
+    masterInfo.data.current = eventName
+    masterInfo.lastUpdatedAt = Date.now()
+
+    let putParams = {
+        TableName : process.env.EVENT_TABLE,
+        Item: masterInfo
+    }
+
+    await docClient.put(putParams).promise()
+
+    return {
+        success: true
+    }
+})}
+
+module.exports.setupSetCurrentBracket = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let bracketName = decodeURIComponent(event.pathParameters.bracketName)
+
+    console.log(event.pathParameters)
+
+    let updateParams = {
+        TableName: process.env.EVENT_TABLE,
+        Key: {"key": eventName},
+        UpdateExpression: "set currentBracket = :bracketName",
+        ExpressionAttributeValues: {
+            ":bracketName": bracketName
+        },
+        ReturnValues: "NONE"
+    }
+    await docClient.update(updateParams).promise().catch((error) => {
+        throw error
+    })
+})}
 
 module.exports.setupGetEvents = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let scanParams = {
@@ -124,33 +215,6 @@ module.exports.getMasterInfo = function() {
     })
 }
 
-module.exports.setupSetCurrentEvent = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
-    let eventName = decodeURIComponent(event.pathParameters.eventName)
-
-    let eventInfo = await getEventInfo(eventName)
-    if (Common.isEmptyObject(eventInfo)) {
-        return {
-            success: false,
-            message: `No event info by name of ${eventName}`
-        }
-    }
-
-    let masterInfo = await module.exports.getMasterInfo()
-    masterInfo.data.current = eventName
-    masterInfo.lastUpdatedAt = Date.now()
-
-    let putParams = {
-        TableName : process.env.EVENT_TABLE,
-        Item: masterInfo
-    }
-
-    await docClient.put(putParams).promise()
-
-    return {
-        success: true
-    }
-})}
-
 function getEventInfo(eventName) {
     let getParams = {
         TableName: process.env.EVENT_TABLE,
@@ -172,12 +236,16 @@ module.exports.setupGetEvent = (e, c, cb) => { Common.handler(e, c, cb, async (e
 
 module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let bracketName = decodeURIComponent(event.pathParameters.bracketName)
     let matchId = decodeURIComponent(event.pathParameters.matchId)
 
     let params = {
         TableName: process.env.EVENT_TABLE,
         Key: {"key": eventName},
-        UpdateExpression: "set currentMatchId = :id",
+        UpdateExpression: "set brackets.#bracketName.currentMatchId = :id",
+        ExpressionAttributeNames: {
+            "#bracketName": bracketName
+        },
         ExpressionAttributeValues: {
             ":id": matchId
         },
@@ -197,6 +265,7 @@ module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async 
 
 module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let bracketName = decodeURIComponent(event.pathParameters.bracketName)
     let matchId = decodeURIComponent(event.pathParameters.matchId)
     let request = JSON.parse(event.body) || {}
 
@@ -204,8 +273,9 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
         let params = {
             TableName: process.env.EVENT_TABLE,
             Key: {"key": eventName},
-            UpdateExpression: `set results.#matchId.isFinal = :isFinal`,
+            UpdateExpression: `set brackets.#bracketName.results.#matchId.isFinal = :isFinal`,
             ExpressionAttributeNames: {
+                "#bracketName": bracketName,
                 "#matchId": matchId
             },
             ExpressionAttributeValues: {
@@ -229,8 +299,9 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
         let params = {
             TableName: process.env.EVENT_TABLE,
             Key: {"key": eventName},
-            UpdateExpression: `set results.#matchId.score[${request.playerIndex}] = results.#matchId.score[${request.playerIndex}] + :pointDelta`,
+            UpdateExpression: `set brackets.#bracketName.results.#matchId.score[${request.playerIndex}] = brackets.#bracketName.results.#matchId.score[${request.playerIndex}] + :pointDelta`,
             ExpressionAttributeNames: {
+                "#bracketName": bracketName,
                 "#matchId": matchId
             },
             ExpressionAttributeValues: {

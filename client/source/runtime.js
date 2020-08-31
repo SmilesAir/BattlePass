@@ -22,7 +22,7 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
     onSetMatch(id) {
         MainStore.currentMatchId = id
 
-        fetchEx("SET_CURRENT_MATCH", { eventName: MainStore.eventName, matchId: Common.reacketIdToDynamoId(id) }, undefined, {
+        fetchEx("SET_CURRENT_MATCH", { eventName: MainStore.eventName, bracketName: MainStore.currentBracket, matchId: Common.reacketIdToDynamoId(id) }, undefined, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -41,11 +41,11 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
     }
 
     onRuntimePoint(playerIndex, pointDelta) {
-        MainStore.matchResults[Common.reacketIdToDynamoId(MainStore.currentMatchId)].score[playerIndex] += pointDelta
+        Common.getMatchResults()[Common.reacketIdToDynamoId(MainStore.currentMatchId)].score[playerIndex] += pointDelta
 
         Common.updateScores()
 
-        fetchEx("UPDATE_MATCH_SCORE", { eventName: MainStore.eventName, matchId: Common.reacketIdToDynamoId(MainStore.currentMatchId) }, undefined, {
+        fetchEx("UPDATE_MATCH_SCORE", { eventName: MainStore.eventName, bracketName: MainStore.currentBracket, matchId: Common.reacketIdToDynamoId(MainStore.currentMatchId) }, undefined, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -60,15 +60,15 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
     }
 
     isCurrentMatchFinal() {
-        return MainStore.matchResults[Common.reacketIdToDynamoId(MainStore.currentMatchId)].isFinal
+        return Common.getMatchResults()[Common.reacketIdToDynamoId(MainStore.currentMatchId)].isFinal
     }
 
     onFinalUpdate(isFinal) {
-        MainStore.matchResults[Common.reacketIdToDynamoId(MainStore.currentMatchId)].isFinal = isFinal
+        Common.getMatchResults()[Common.reacketIdToDynamoId(MainStore.currentMatchId)].isFinal = isFinal
 
         Common.updateScores()
 
-        fetchEx("UPDATE_MATCH_SCORE", { eventName: MainStore.eventName, matchId: Common.reacketIdToDynamoId(MainStore.currentMatchId) }, undefined, {
+        fetchEx("UPDATE_MATCH_SCORE", { eventName: MainStore.eventName, bracketName: MainStore.currentBracket, matchId: Common.reacketIdToDynamoId(MainStore.currentMatchId) }, undefined, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -82,7 +82,7 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
     }
 
     isScoreAboveZero(playerIndex) {
-        return MainStore.matchResults[Common.reacketIdToDynamoId(MainStore.currentMatchId)].score[playerIndex] > 0
+        return Common.getMatchResults()[Common.reacketIdToDynamoId(MainStore.currentMatchId)].score[playerIndex] > 0
     }
 
     getRuntimeControls() {

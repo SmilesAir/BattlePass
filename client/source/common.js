@@ -7,16 +7,29 @@ const { fetchEx, fetchAuth } = require("./endpoints.js")
 const Common = require("./common.js")
 
 function fillNewMatchResults(duel) {
-    MainStore.matchResults = {}
+    if (MainStore.currentBracket === undefined) {
+        console.error("No Bracket set")
+        return
+    }
+
+    MainStore.brackets[MainStore.currentBracket].results = {}
 
     for (let match of duel.matches) {
         let result = new MatchResult(match.id.s, match.id.r, match.id.m, 0, 0, false)
-        MainStore.matchResults[result.dynamodId] = result
+        MainStore.brackets[MainStore.currentBracket].results[result.dynamodId] = result
     }
 }
 
 module.exports.updateBracketFromNamesString = function(namesString, createNewBracket) {
     module.exports.updateBracketFromNames(namesString.split("\n"), createNewBracket)
+}
+
+module.exports.getMatchResults = function() {
+    return MainStore.brackets[MainStore.currentBracket].results
+}
+
+module.exports.getCurrentBracket = function() {
+    return MainStore.brackets[MainStore.currentBracket]
 }
 
 module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
@@ -28,6 +41,10 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
         return
     }
 
+    if (names.length !== MainStore.brackets[MainStore.currentBracket].names.length) {
+        return
+    }
+
     MainStore.namesArray = namesArray
 
     MainStore.duel = new Duel(names.length)
@@ -36,8 +53,9 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
         fillNewMatchResults(MainStore.duel)
     }
 
-    for (let resultId in MainStore.matchResults) {
-        let result = MainStore.matchResults[resultId]
+    let matchResults = module.exports.getMatchResults()
+    for (let resultId in matchResults) {
+        let result = matchResults[resultId]
         if (result.isFinal) {
             MainStore.duel.score(result.duelId, result.score)
         }
@@ -47,7 +65,7 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
     for (let match of MainStore.duel.matches) {
         let id = `${match.id.s}.${match.id.r}.${match.id.m}`
         let dynamoId = Common.reacketIdToDynamoId(id)
-        let result = MainStore.matchResults[dynamoId]
+        let result = matchResults[dynamoId]
         let newMatch = {
             id: id,
             round: match.id.s === 2 ? MainStore.duel.p : match.id.r,
@@ -89,8 +107,9 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
 }
 
 module.exports.updateScores = function() {
-    for (let resultId in MainStore.matchResults) {
-        let result = MainStore.matchResults[resultId]
+    let matchResults = MainStore.brackets[MainStore.currentBracket].results
+    for (let resultId in matchResults) {
+        let result = matchResults[resultId]
         if (result.isFinal) {
             MainStore.duel.score(result.duelId, result.score)
         }
@@ -98,7 +117,7 @@ module.exports.updateScores = function() {
 
     for (let duelMatch of MainStore.duel.matches) {
         let id = `${duelMatch.id.s}.${duelMatch.id.r}.${duelMatch.id.m}`
-        let result = MainStore.matchResults[Common.reacketIdToDynamoId(id)]
+        let result = matchResults[Common.reacketIdToDynamoId(id)]
         let reacketMatch = MainStore.reacketMatches.find((match) => {
             return match.id === id
         })
@@ -135,9 +154,10 @@ module.exports.updateEventInfoFromAws = function() {
         return response.json()
     }).then((response) => {
         MainStore.eventName = response.info.eventName
-        MainStore.currentMatchId = module.exports.dynamoIdToReacketId(response.info.currentMatchId)
-        MainStore.matchResults = response.info.results
-        module.exports.updateBracketFromNames(response.info.names)
+        MainStore.currentBracket = response.info.currentBracket
+        MainStore.brackets = response.info.brackets
+        MainStore.currentMatchId = module.exports.dynamoIdToReacketId(module.exports.getCurrentBracket().currentMatchId)
+        module.exports.updateBracketFromNames(MainStore.brackets[MainStore.currentBracket].names)
     })
 }
 
