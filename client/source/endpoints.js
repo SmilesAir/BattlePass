@@ -10,6 +10,7 @@ let urls = {
     SET_CURRENT_MATCH: "{path}/setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}",
     UPDATE_MATCH_SCORE: "{path}/updateMatchScore/{eventName}/bracket/{bracketName}/matchId/{matchId}",
     GET_USER_DATA: "{path}/getUserData",
+    UPDATE_PICK: "{path}/updatePick/{eventName}/bracket/{bracketName}/matchId/{matchId}/wager/{wager}"
 }
 
 function buildUrl(isAuth, urlKey, pathParams, queryParams) {

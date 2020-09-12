@@ -87,6 +87,99 @@ function getUserItem(username) {
 function getNewEventData() {
     return {
         createdAt: Date.now(),
-        raffleTicketCount: 0
+        raffleTicketCount: 0,
+        picks: {}
     }
 }
+
+module.exports.updatePick = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let username = event.requestContext.authorizer.jwt.claims.username
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let bracketName = decodeURIComponent(event.pathParameters.bracketName)
+    let matchId = decodeURIComponent(event.pathParameters.matchId)
+    let wager = parseInt(decodeURIComponent(event.pathParameters.wager))
+
+    let userData = await getUserItem(username)
+    if (userData === undefined) {
+        throw "Can't find user " + username
+    }
+
+    let pickId = `${bracketName}_${matchId}`
+    let pickData = userData[eventName].picks[pickId]
+    if (pickData === wager) {
+        return {
+            success: true
+        }
+    }
+
+    let eventInfo = await EventCommon.getEventInfo(eventName)
+    if (eventInfo === undefined) {
+        throw "Can't find event " + eventName
+    }
+
+    let matchData = eventInfo.brackets[bracketName].results[matchId]
+    if (matchData.isPickable !== true) {
+        return {
+            success: false,
+            isNotPickable: true,
+            message: "isPickable is false"
+        }
+    }
+
+    let userUpdateParams = {
+        TableName: process.env.USER_TABLE,
+        Key: {"key": username},
+        UpdateExpression: "set #eventName.picks.#pickId = :wager",
+        ExpressionAttributeNames : {
+            "#eventName": eventName,
+            "#pickId": pickId
+        },
+        ExpressionAttributeValues: {
+            ":wager": wager
+        },
+        ReturnValues: "NONE"
+    }
+    await docClient.update(userUpdateParams).promise().catch((error) => {
+        throw error
+    })
+
+    let delta0 = 0
+    let delta1 = 0
+    if (pickData === undefined) {
+        if (wager > 0) {
+            delta1 = wager
+        } else {
+            delta0 = -wager
+        }
+    } else {
+        if (wager > 0) {
+            delta0 = -wager
+            delta1 = wager
+        } else {
+            delta0 = wager
+            delta1 = -wager
+        }
+    }
+
+    let eventUpdateParams = {
+        TableName: process.env.EVENT_TABLE,
+        Key: {"key": eventName},
+        UpdateExpression: "set brackets.#bracketName.results.#matchId.wagerTotals[0] = brackets.#bracketName.results.#matchId.wagerTotals[0] + :delta0, brackets.#bracketName.results.#matchId.wagerTotals[1] = brackets.#bracketName.results.#matchId.wagerTotals[1] + :delta1",
+        ExpressionAttributeNames : {
+            "#bracketName": bracketName,
+            "#matchId": matchId
+        },
+        ExpressionAttributeValues: {
+            ":delta0": delta0,
+            ":delta1": delta1
+        },
+        ReturnValues: "NONE"
+    }
+    await docClient.update(eventUpdateParams).promise().catch((error) => {
+        throw error
+    })
+
+    return {
+        success: true
+    }
+})}

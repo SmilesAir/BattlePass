@@ -215,7 +215,7 @@ module.exports.getMasterInfo = function() {
     })
 }
 
-function getEventInfo(eventName) {
+module.exports.getEventInfo = function(eventName) {
     let getParams = {
         TableName: process.env.EVENT_TABLE,
         Key: {"key": eventName}
@@ -231,7 +231,7 @@ function getEventInfo(eventName) {
 module.exports.setupGetEvent = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let eventName = decodeURIComponent(event.pathParameters.eventName)
 
-    return getEventInfo(eventName)
+    return module.exports.getEventInfo(eventName)
 })}
 
 module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
@@ -269,6 +269,16 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
     let matchId = decodeURIComponent(event.pathParameters.matchId)
     let request = JSON.parse(event.body) || {}
 
+    // let sns = new AWS.SNS()
+    // let snsParams = {
+    //     Message: "Does this work?",
+    //     Subject: "test subject",
+    //     TopicArn: process.env.SNS_TOPIC_ARN
+    // }
+    // await sns.publish(snsParams).promise().catch((error) => {
+    //     console.log("sns error", error)
+    // })
+
     if (request.isFinal !== undefined) {
         let params = {
             TableName: process.env.EVENT_TABLE,
@@ -299,13 +309,14 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
         let params = {
             TableName: process.env.EVENT_TABLE,
             Key: {"key": eventName},
-            UpdateExpression: `set brackets.#bracketName.results.#matchId.score[${request.playerIndex}] = brackets.#bracketName.results.#matchId.score[${request.playerIndex}] + :pointDelta`,
+            UpdateExpression: `set brackets.#bracketName.results.#matchId.score[${request.playerIndex}] = brackets.#bracketName.results.#matchId.score[${request.playerIndex}] + :pointDelta, brackets.#bracketName.results.#matchId.isPickable = :false`,
             ExpressionAttributeNames: {
                 "#bracketName": bracketName,
                 "#matchId": matchId
             },
             ExpressionAttributeValues: {
-                ":pointDelta": request.pointDelta
+                ":pointDelta": request.pointDelta,
+                ":false": false
             },
             ReturnValues: "NONE"
         }

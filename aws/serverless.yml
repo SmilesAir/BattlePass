@@ -10,7 +10,10 @@ provider:
   environment:
     EVENT_TABLE: ${self:service}-${self:provider.stage}-eventTable
     USER_TABLE: ${self:service}-${self:provider.stage}-userTable
+    USER_LIST_TABLE: ${self:service}-${self:provider.stage}-userListTable
     DOMAIN_SUFFIX: smilesair-gitis
+    SNS_TOPIC: ${self:service}-${self:provider.stage}-topic
+    SNS_TOPIC_ARN: arn:aws:sns:${opt:region, self:provider.region}:#{AWS::AccountId}:${self:provider.environment.SNS_TOPIC}
 
   httpApi:
     payload: '2.0'
@@ -28,8 +31,8 @@ provider:
         audience:
           - Ref: serviceUserPoolClient
 
-  logs:
-    httpApi: true
+  # logs:
+  #   httpApi: true
 
   iamRoleStatements:
     - Effect: Allow
@@ -48,6 +51,19 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USER_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USER_LIST_TABLE}"
+    - Effect: Allow
+      Action:
+        - SNS:Publish
+      Resource: "${self:provider.environment.SNS_TOPIC_ARN}"
+
 
 functions:
   setupNewEvent:
@@ -127,6 +143,13 @@ functions:
           path: /upgradeUser
           method: post
           authorizer: serviceAuthorizer
+  updatePick:
+    handler: source/userCommon.updatePick
+    events:
+      - httpApi:
+          path: /updatePick/{eventName}/bracket/{bracketName}/matchId/{matchId}/wager/{wager}
+          method: post
+          authorizer: serviceAuthorizer
 
 resources:
   Resources:
@@ -147,6 +170,19 @@ resources:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:provider.environment.USER_TABLE}
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    userListTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.USER_LIST_TABLE}
         AttributeDefinitions:
           - AttributeName: key
             AttributeType: S
@@ -195,6 +231,11 @@ resources:
         UserPoolId:
           Ref: serviceUserPool
         Domain: ${self:service}-user-pool-domain-${opt:stage, self:provider.stage}-${self:provider.environment.DOMAIN_SUFFIX}
+    snsTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName: SNS Topic
+        TopicName: ${self:provider.environment.SNS_TOPIC}
 
 custom:
   autoscaling:
@@ -216,3 +257,7 @@ custom:
         minimum: 1
         maximum: 100
         usage: .75
+
+plugins:
+  - serverless-plugin-dynamo-autoscaling
+  - serverless-pseudo-parameters

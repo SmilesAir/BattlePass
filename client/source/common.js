@@ -25,7 +25,7 @@ module.exports.updateBracketFromNamesString = function(namesString, createNewBra
 }
 
 module.exports.getMatchResults = function() {
-    return MainStore.brackets[MainStore.currentBracket].results
+    return MainStore.brackets[MainStore.currentBracket] && MainStore.brackets[MainStore.currentBracket].results
 }
 
 module.exports.getCurrentBracket = function() {
@@ -66,14 +66,35 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
         let id = `${match.id.s}.${match.id.r}.${match.id.m}`
         let dynamoId = Common.reacketIdToDynamoId(id)
         let result = matchResults[dynamoId]
+        let score0 = ""
+        let score1 = ""
+        let isTBD = match.p.find((player) => {
+            return player === 0
+        }) !== undefined
+        let started = result !== undefined ? result.score[0] !== 0 || result.score[1] !== 0 : false
+        if (started) {
+            score0 = `${result && result.score[0] || 0}`
+            score1 = `${result && result.score[1] || 0}`
+        } else if (!isTBD) {
+            if (result !== undefined) {
+                let total = result.wagerTotals[0] + result.wagerTotals[1]
+                if (total > 0) {
+                    score0 = `${(result.wagerTotals[0] / total * 100).toFixed(0)}%`
+                    score1 = `${(result.wagerTotals[1] / total * 100).toFixed(0)}%`
+                } else {
+                    score0 = "0%"
+                    score1 = "0%"
+                }
+            }
+        }
         let newMatch = {
             id: id,
             round: match.id.s === 2 ? MainStore.duel.p : match.id.r,
             match: match.id.m,
             players: [],
             score: [
-                result && result.score[0] || 0,
-                result && result.score[1] || 0
+                score0,
+                score1
             ],
             isFinal: result.isFinal,
             isCurrent: MainStore.currentMatchId === id
@@ -135,8 +156,8 @@ module.exports.updateScores = function() {
         }
 
         if (reacketMatch !== undefined && result !== undefined) {
-            reacketMatch.score[0] = result.score[0]
-            reacketMatch.score[1] = result.score[1]
+            reacketMatch.score[0] = `${result.score[0]}`
+            reacketMatch.score[1] = `${result.score[1]}`
         }
 
         reacketMatch.isFinal = result.isFinal

@@ -1,3 +1,4 @@
+/* eslint-disable no-alert */
 "use strict"
 
 const React = require("react")
@@ -5,7 +6,7 @@ const MobxReact = require("mobx-react")
 
 const MainStore = require("./mainStore.js")
 const EventInfo = require("./eventInfo.js")
-const { fetchEx } = require("./endpoints.js")
+const { fetchAuth } = require("./endpoints.js")
 const Common = require("./common.js")
 
 require("./basic.less")
@@ -17,13 +18,108 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         Common.updateEventInfoFromAws().then(() => {
             this.forceUpdate()
         })
+
+        this.state = {
+            pickMatchId: undefined,
+            pickMatchPlayers: undefined,
+            pickIndex: undefined
+        }
+        this.setState(this.state)
+    }
+
+    getExpandElement(id, players) {
+        if (players === undefined) {
+            return null
+        }
+
+        let matchResultData = Common.getMatchResults()[Common.reacketIdToDynamoId(id)]
+        let locked = matchResultData === undefined || matchResultData.isPickable !== true
+
+        let hasTBD = players.find((player) => {
+            return player.name === "TBD"
+        }) !== undefined
+
+        return (
+            <button onClick={() => this.onSetMatch(id, players)} disabled={hasTBD || locked}>Bet</button>
+        )
+    }
+
+    onSetMatch(id, players) {
+        this.state.pickMatchId = id
+        this.state.pickMatchPlayers = players
+        let pickData = MainStore.userData[MainStore.eventName].picks[`${MainStore.currentBracket}_${Common.reacketIdToDynamoId(id)}`]
+        if (pickData === undefined) {
+            this.state.pickIndex = undefined
+        } else {
+            this.state.pickIndex = pickData > 0 ? 1 : 0
+        }
+        this.setState(this.state)
+    }
+
+    onPick(event) {
+        let wager = parseInt(event.target.value, 10) > 0 ? 1 : -1
+        let matchId = this.state.pickMatchId
+
+        MainStore.Auth.currentAuthenticatedUser().then((data) => {
+            fetchAuth("UPDATE_PICK", { eventName: MainStore.eventName, bracketName: MainStore.currentBracket, matchId: Common.reacketIdToDynamoId(matchId), wager: wager }, undefined, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": data.signInUserSession.accessToken.jwtToken
+                }
+            }).then((response) => {
+                return response.json()
+            }).then((response) => {
+                if (response.isNotPickable) {
+                    alert("Match has already been locked. No Bet placed.")
+                }
+            }).catch((error) => {
+                console.error("Failed to update match", error)
+            })
+        })
+
+        MainStore.userData[MainStore.eventName].picks[`${MainStore.currentBracket}_${Common.reacketIdToDynamoId(this.state.pickMatchId)}`] = wager
+
+        this.state.pickIndex = undefined
+        this.state.pickMatchId = undefined
+        this.setState(this.state)
+    }
+
+    getPickElement() {
+        if (this.state.pickMatchId === undefined) {
+            return null
+        }
+
+        let options = []
+        options = this.state.pickMatchPlayers.map((player, index) => {
+            return (
+                <div key={player.name}>
+                    <label>
+                        <input type="radio" value={index} checked={index === this.state.pickIndex} onChange={(event) => this.onPick(event)}/>
+                        {player.name}
+                    </label>
+                </div>
+            )
+        })
+
+        return (
+            <div className="pickContainer">
+                <div>
+                    Pick the winner
+                </div>
+                <form>
+                    {options}
+                </form>
+            </div>
+        )
     }
 
     render() {
         return (
             <div>
+                {this.getPickElement()}
                 <EventInfo />
-                <MainStore.Reacket matches={MainStore.reacketMatches} />
+                <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={true} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
             </div>
         )
     }

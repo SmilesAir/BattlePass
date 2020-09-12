@@ -115,7 +115,7 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
             <div>
                 <EventInfo />
                 {this.getRuntimeControls()}
-                <MainStore.Reacket matches={MainStore.reacketMatches} isRuntime={true} getExpandElement={(id) => this.getExpandElement(id)} />
+                <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={true} getExpandElement={(id) => this.getExpandElement(id)} />
             </div>
         )
     }
