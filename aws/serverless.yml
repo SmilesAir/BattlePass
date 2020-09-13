@@ -150,6 +150,13 @@ functions:
           path: /updatePick/{eventName}/bracket/{bracketName}/matchId/{matchId}/wager/{wager}
           method: post
           authorizer: serviceAuthorizer
+  collectRewards:
+    handler: source/userCommon.collectRewards
+    events:
+      - httpApi:
+          path: /collectRewards/{eventName}
+          method: post
+          authorizer: serviceAuthorizer
 
 resources:
   Resources:

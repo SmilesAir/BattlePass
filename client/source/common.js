@@ -177,6 +177,7 @@ module.exports.updateEventInfoFromAws = function() {
         MainStore.eventName = response.info.eventName
         MainStore.currentBracket = response.info.currentBracket
         MainStore.brackets = response.info.brackets
+        MainStore.eventRaffleTicketCount = response.info.raffleTicketCount
         MainStore.currentMatchId = module.exports.dynamoIdToReacketId(module.exports.getCurrentBracket().currentMatchId)
         module.exports.updateBracketFromNames(MainStore.brackets[MainStore.currentBracket].names)
     })

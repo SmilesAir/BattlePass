@@ -59,7 +59,8 @@ module.exports.getUserData = (e, c, cb) => { Common.handler(e, c, cb, async (eve
 
     return {
         success: true,
-        data: data
+        data: data,
+        createdNew: createdNew
     }
 })}
 
@@ -87,8 +88,10 @@ function getUserItem(username) {
 function getNewEventData() {
     return {
         createdAt: Date.now(),
+        points: 0,
         raffleTicketCount: 0,
-        picks: {}
+        picks: {},
+        processed: {}
     }
 }
 
@@ -181,5 +184,93 @@ module.exports.updatePick = (e, c, cb) => { Common.handler(e, c, cb, async (even
 
     return {
         success: true
+    }
+})}
+
+module.exports.collectRewards = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let username = event.requestContext.authorizer.jwt.claims.username
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+
+    let userData = await getUserItem(username)
+    if (userData === undefined) {
+        throw "Can't find user " + username
+    }
+
+    let unprocessed = []
+    let userEventData = userData[eventName]
+    for (let pick in userEventData.picks) {
+        if (userEventData.processed[pick] === undefined) {
+            unprocessed.push({
+                pickId: pick,
+                wager: userEventData.picks[pick]
+            })
+        }
+    }
+
+    if (unprocessed.length === 0) {
+        return {
+            success: true
+        }
+    } else {
+        let eventInfo = await EventCommon.getEventInfo(eventName)
+        if (eventInfo === undefined) {
+            throw "Can't find event " + eventName
+        }
+
+        let newProcessed = []
+        let rewards = {
+            raffleTicketCount: 0,
+            points: 0
+        }
+        for (let pickKey in unprocessed) {
+            let pick = unprocessed[pickKey]
+            let bracketName = pick.pickId.split(/_(.+)/)[0]
+            let matchId = pick.pickId.split(/_(.+)/)[1]
+            let matchData = eventInfo.brackets[bracketName].results[matchId]
+            if (matchData.isFinal === true) {
+                newProcessed.push(pick.pickId)
+
+                let scoreDelta  = matchData.score[1] - matchData.score[0]
+                let isWin = scoreDelta > 0 && pick.wager > 0 || scoreDelta < 0 && pick.wager < 0
+                if (isWin) {
+                    rewards.raffleTicketCount += 10
+                    rewards.points += 100
+                }
+            }
+        }
+
+        await Common.awardRaffleTickets(eventName, username, rewards.raffleTicketCount)
+
+        if (newProcessed.length > 0) {
+            let names = {
+                "#eventName": eventName,
+                "#processed": "processed"
+            }
+            let exp = "set " + newProcessed.map((pickId, index) => {
+                names[`#pickId${index}`] = pickId
+                return `#eventName.#processed.#pickId${index} = :now`
+            }).join(", ")
+            exp += ", #eventName.points = #eventName.points + :points"
+
+            let userUpdateParams = {
+                TableName: process.env.USER_TABLE,
+                Key: {"key": username},
+                UpdateExpression: exp,
+                ExpressionAttributeNames : names,
+                ExpressionAttributeValues: {
+                    ":now": Date.now(),
+                    ":points": rewards.points
+                },
+                ReturnValues: "NONE"
+            }
+            await docClient.update(userUpdateParams).promise().catch((error) => {
+                throw error
+            })
+        }
+
+        return {
+            success: true,
+            rewards: rewards
+        }
     }
 })}

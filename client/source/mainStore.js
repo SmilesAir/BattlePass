@@ -5,6 +5,7 @@ module.exports = Mobx.observable({
     eventName: undefined,
     reacketMatches: [],
     brackets: {},
+    eventRaffleTicketCount: 0,
     isLoggedIn: false,
     cognitoUsername: undefined,
     showAuthenticator: false,

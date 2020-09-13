@@ -13,10 +13,12 @@ module.exports = @MobxReact.observer class EventInfo extends React.Component {
     }
 
     render() {
-        let ticketCount = MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].raffleTicketCount
+        let ticketCount = MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].raffleTicketCount || 0
+        let raffleWinPercent = (MainStore.eventRaffleTicketCount > 0 ? ticketCount / MainStore.eventRaffleTicketCount : 0) * 100
+        let points = MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].points || 0
         return (
             <div>
-                {MainStore.eventName} | Username: {MainStore.displayName} | Raffle Tickets: {ticketCount || 0}
+                {MainStore.eventName} | Username: {MainStore.displayName} | Raffle Tickets: {ticketCount || 0} (Chance to win {raffleWinPercent.toFixed(0)}%) | Battle Pass Points: {points} (Level: {(points / 100).toFixed(0)})
             </div>
         )
     }

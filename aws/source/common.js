@@ -40,7 +40,10 @@ module.exports.awardRaffleTickets = function(eventName, username, count) {
     let params = {
         TableName: process.env.USER_TABLE,
         Key: {"key": username},
-        UpdateExpression: `set raffleTicketCount = raffleTicketCount + :count`,
+        UpdateExpression: `set #eventName.raffleTicketCount = #eventName.raffleTicketCount + :count`,
+        ExpressionAttributeNames: {
+            "#eventName": eventName
+        },
         ExpressionAttributeValues: {
             ":count": count
         },
@@ -49,11 +52,8 @@ module.exports.awardRaffleTickets = function(eventName, username, count) {
     return docClient.update(params).promise().then(() => {
         let eventUpdateParams = {
             TableName: process.env.EVENT_TABLE,
-            Key: {"key": username},
-            UpdateExpression: "set #eventName.raffleTicketCount = #eventName.raffleTicketCount + :count",
-            ExpressionAttributeNames : {
-                "#eventName": eventName
-            },
+            Key: {"key": eventName},
+            UpdateExpression: "set raffleTicketCount = raffleTicketCount + :count",
             ExpressionAttributeValues: {
                 ":count": count
             },

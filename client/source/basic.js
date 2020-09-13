@@ -114,12 +114,39 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         )
     }
 
+    collectRewards() {
+        MainStore.Auth.currentAuthenticatedUser().then((data) => {
+            fetchAuth("COLLECT_REWARDS", { eventName: MainStore.eventName }, undefined, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": data.signInUserSession.accessToken.jwtToken
+                }
+            }).then((response) => {
+                return response.json()
+            }).then((response) => {
+                console.log("rewards", response.rewards)
+
+                if (response.rewards !== undefined) {
+                    Common.updateEventInfoFromAws().then(() => {
+                        this.forceUpdate()
+                    })
+
+                    Common.fillUserData()
+                }
+            }).catch((error) => {
+                console.error("Failed to update match", error)
+            })
+        })
+    }
+
     render() {
         return (
             <div>
                 {this.getPickElement()}
                 <EventInfo />
                 <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={true} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
+                <button onClick={() => this.collectRewards()}>Collect Rewards</button>
             </div>
         )
     }
