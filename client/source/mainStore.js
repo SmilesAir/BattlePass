@@ -14,5 +14,6 @@ module.exports = Mobx.observable({
     currentMatchId: undefined,
     duel: undefined,
     namesArray: [],
-    userData: undefined
+    userData: undefined,
+    showUpgradePopup: false
 })

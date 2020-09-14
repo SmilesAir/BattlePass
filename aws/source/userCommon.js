@@ -42,7 +42,7 @@ module.exports.getUserData = (e, c, cb) => { Common.handler(e, c, cb, async (eve
                     TableName: process.env.USER_TABLE,
                     Key: {"key": username},
                     UpdateExpression: "set #eventName = :data",
-                    ExpressionAttributeNames : {
+                    ExpressionAttributeNames: {
                         "#eventName": currentEventName
                     },
                     ExpressionAttributeValues: {
@@ -91,7 +91,8 @@ function getNewEventData() {
         points: 0,
         raffleTicketCount: 0,
         picks: {},
-        processed: {}
+        processed: {},
+        tier: 0
     }
 }
 
@@ -133,7 +134,7 @@ module.exports.updatePick = (e, c, cb) => { Common.handler(e, c, cb, async (even
         TableName: process.env.USER_TABLE,
         Key: {"key": username},
         UpdateExpression: "set #eventName.picks.#pickId = :wager",
-        ExpressionAttributeNames : {
+        ExpressionAttributeNames: {
             "#eventName": eventName,
             "#pickId": pickId
         },
@@ -168,7 +169,7 @@ module.exports.updatePick = (e, c, cb) => { Common.handler(e, c, cb, async (even
         TableName: process.env.EVENT_TABLE,
         Key: {"key": eventName},
         UpdateExpression: "set brackets.#bracketName.results.#matchId.wagerTotals[0] = brackets.#bracketName.results.#matchId.wagerTotals[0] + :delta0, brackets.#bracketName.results.#matchId.wagerTotals[1] = brackets.#bracketName.results.#matchId.wagerTotals[1] + :delta1",
-        ExpressionAttributeNames : {
+        ExpressionAttributeNames: {
             "#bracketName": bracketName,
             "#matchId": matchId
         },
@@ -256,7 +257,7 @@ module.exports.collectRewards = (e, c, cb) => { Common.handler(e, c, cb, async (
                 TableName: process.env.USER_TABLE,
                 Key: {"key": username},
                 UpdateExpression: exp,
-                ExpressionAttributeNames : names,
+                ExpressionAttributeNames: names,
                 ExpressionAttributeValues: {
                     ":now": Date.now(),
                     ":points": rewards.points
@@ -272,5 +273,108 @@ module.exports.collectRewards = (e, c, cb) => { Common.handler(e, c, cb, async (
             success: true,
             rewards: rewards
         }
+    }
+})}
+
+module.exports.redeemCode = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let username = event.requestContext.authorizer.jwt.claims.username
+    let code = decodeURIComponent(event.pathParameters.code)
+
+    let getParams = {
+        TableName: process.env.CODE_TABLE,
+        Key: {"key": code}
+    }
+    let codeData = await docClient.get(getParams).promise().then((response) => {
+        if (!Common.isEmptyObject(response)) {
+            return response.Item
+        }
+
+        return undefined
+    }).catch((error) => {
+        throw error
+    })
+
+    if (codeData === undefined) {
+        return {
+            success: false,
+            noCodeFound: true
+        }
+    }
+
+    if (codeData.claimedBy !== undefined) {
+        return {
+            success: false,
+            alreadyClaimedBy: codeData.claimedBy
+        }
+    }
+
+    let updateParams = {
+        TableName: process.env.CODE_TABLE,
+        Key: {"key": code},
+        UpdateExpression: "set claimedAt = :now, claimedBy = :claimbedBy",
+        ExpressionAttributeValues: {
+            ":now": Date.now(),
+            ":claimbedBy": username
+        },
+        ReturnValues: "NONE"
+    }
+    await docClient.update(updateParams).promise().catch((error) => {
+        throw error
+    })
+
+    await upgradeUser(codeData.eventName, username, 1)
+
+    return {
+        success: true,
+        codeData: codeData
+    }
+})}
+
+function upgradeUser(eventName, username, tier) {
+    let userUpdateParams = {
+        TableName: process.env.USER_TABLE,
+        Key: {"key": username},
+        UpdateExpression: "set #eventName.tier = :tier",
+        ExpressionAttributeNames: {
+            "#eventName": eventName
+        },
+        ExpressionAttributeValues: {
+            ":tier": tier
+        },
+        ReturnValues: "NONE"
+    }
+    return docClient.update(userUpdateParams).promise().catch((error) => {
+        throw error
+    })
+}
+
+module.exports.setupCreateCode = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let username = event.requestContext.authorizer.jwt.claims.username
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let code = decodeURIComponent(event.pathParameters.code)
+
+    let userData = await getUserItem(username)
+    if (userData === undefined) {
+        throw "Can't find this admin user"
+    }
+
+    if (userData.isAdmin !== true) {
+        throw "This user is not an Admin"
+    }
+
+    let params = {
+        TableName: process.env.CODE_TABLE,
+        Item: {
+            key: code,
+            createdAt: Date.now(),
+            eventName: eventName
+        }
+    }
+    await docClient.put(params).promise().catch((error) => {
+        throw error
+    })
+
+    return {
+        success: true
     }
 })}

@@ -212,3 +212,7 @@ module.exports.fillUserData = function() {
 module.exports.isAdmin = function() {
     return MainStore.userData && MainStore.userData.isAdmin || false
 }
+
+module.exports.getUserTier = function() {
+    return MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].tier || 0
+}

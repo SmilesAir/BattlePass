@@ -11,7 +11,9 @@ let urls = {
     UPDATE_MATCH_SCORE: "{path}/updateMatchScore/{eventName}/bracket/{bracketName}/matchId/{matchId}",
     GET_USER_DATA: "{path}/getUserData",
     UPDATE_PICK: "{path}/updatePick/{eventName}/bracket/{bracketName}/matchId/{matchId}/wager/{wager}",
-    COLLECT_REWARDS: "{path}/collectRewards/{eventName}"
+    COLLECT_REWARDS: "{path}/collectRewards/{eventName}",
+    REDEEM_CODE: "{path}/redeemCode/{code}",
+    SETUP_CREATE_CODE: "{path}/setupCreateCode/{eventName}/code/{code}"
 }
 
 function buildUrl(isAuth, urlKey, pathParams, queryParams) {

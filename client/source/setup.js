@@ -2,8 +2,9 @@
 
 const React = require("react")
 const MobxReact = require("mobx-react")
+const { v4 } = require("uuid")
 
-const { fetchEx } = require("./endpoints.js")
+const { fetchEx, fetchAuth } = require("./endpoints.js")
 const Common = require("./common.js")
 const MainStore = require("./mainStore.js")
 
@@ -17,7 +18,8 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
             namesText: "",
             swapName: undefined,
             isCreatingNewEvent: false,
-            isCreatingNewBracket: false
+            isCreatingNewBracket: false,
+            code: ""
         }
     }
 
@@ -317,6 +319,23 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         return this.state.eventName === undefined || this.state.eventName.length === 0 || this.state.eventName === "Select Event"
     }
 
+    createCode() {
+        this.state.code = v4().replace(/-/g, "")
+        this.setState(this.state)
+
+        MainStore.Auth.currentAuthenticatedUser().then((data) => {
+            fetchAuth("SETUP_CREATE_CODE", { eventName: this.state.eventName, code: this.state.code }, undefined, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": data.signInUserSession.accessToken.jwtToken
+                }
+            }).catch((error) => {
+                console.error("Failed to create code", error)
+            })
+        })
+    }
+
     render() {
         return (
             <div>
@@ -326,6 +345,10 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
                 {this.state.isCreatingNewEvent ? this.getNewEventElement() : this.getEventsDropDown()}
                 <button onClick={() => this.setCreatingNewEvent()}>Create New Event</button>
                 <button onClick={() => this.setCurrentEvent()} disabled={this.isEventInvalid()}>Set as Current Event</button>
+                <div>
+                    <button onClick={() => this.createCode()}>Create Premium Code</button>
+                    <label>Code: {this.state.code}</label>
+                </div>
                 {this.state.isCreatingNewBracket ? this.getNewBracketElement() : this.getBracketsDropDown()}
                 <button onClick={() => this.onCreateNewBracket()} disabled={this.isBracketInvalid()}>Upload Bracket</button>
                 <button onClick={() => this.setCreatingNewBracket()}>Create New Bracket</button>

@@ -24,7 +24,6 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
             pickMatchPlayers: undefined,
             pickIndex: undefined
         }
-        this.setState(this.state)
     }
 
     getExpandElement(id, players) {
@@ -140,13 +139,22 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         })
     }
 
+    getCollectRewardsElement() {
+        if (Common.getUserTier() === 0) {
+            return null
+        }
+
+        return <button onClick={() => this.collectRewards()}>Collect Rewards</button>
+    }
+
     render() {
+        let isFreeUser = Common.getUserTier() === 0
         return (
             <div>
                 {this.getPickElement()}
                 <EventInfo />
-                <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={true} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
-                <button onClick={() => this.collectRewards()}>Collect Rewards</button>
+                <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={!isFreeUser} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
+                {this.getCollectRewardsElement()}
             </div>
         )
     }
