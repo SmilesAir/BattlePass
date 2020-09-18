@@ -8,6 +8,8 @@ const MainStore = require("./mainStore.js")
 const EventInfo = require("./eventInfo.js")
 const { fetchAuth } = require("./endpoints.js")
 const Common = require("./common.js")
+const Welcome = require("./welcome.js")
+const Rewards = require("./rewards.js")
 
 require("./basic.less")
 
@@ -132,6 +134,9 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
                     })
 
                     Common.fillUserData()
+
+                    MainStore.showRewards = true
+                    MainStore.rewards = response.rewards
                 }
             }).catch((error) => {
                 console.error("Failed to update match", error)
@@ -144,6 +149,10 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
             return null
         }
 
+        if (!Common.areUncollectedRewards()) {
+            return null
+        }
+
         return <button onClick={() => this.collectRewards()}>Collect Rewards</button>
     }
 
@@ -151,6 +160,8 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         let isFreeUser = Common.getUserTier() === 0
         return (
             <div>
+                <Welcome />
+                <Rewards />
                 {this.getPickElement()}
                 <EventInfo />
                 <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={!isFreeUser} getExpandElement={(id, players) => this.getExpandElement(id, players)} />

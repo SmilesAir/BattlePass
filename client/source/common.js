@@ -216,3 +216,24 @@ module.exports.isAdmin = function() {
 module.exports.getUserTier = function() {
     return MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].tier || 0
 }
+
+module.exports.areUncollectedRewards = function() {
+    let unprocessed = []
+    let eventData = MainStore.userData[MainStore.eventName]
+    for (let pick in eventData.picks) {
+        if (eventData.processed[pick] === undefined) {
+            unprocessed.push(pick)
+        }
+    }
+
+    for (let pick of unprocessed) {
+        let bracketName = pick.split(/_(.+)/)[0]
+        let matchId = pick.split(/_(.+)/)[1]
+        let matchData = MainStore.brackets[bracketName].results[matchId]
+        if (matchData.isFinal === true) {
+            return true
+        }
+    }
+
+    return false
+}

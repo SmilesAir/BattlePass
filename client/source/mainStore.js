@@ -15,5 +15,8 @@ module.exports = Mobx.observable({
     duel: undefined,
     namesArray: [],
     userData: undefined,
-    showUpgradePopup: false
+    showUpgradePopup: false,
+    showWelcome: false,
+    showRewards: false,
+    rewards: undefined
 })

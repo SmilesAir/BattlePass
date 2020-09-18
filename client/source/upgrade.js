@@ -61,6 +61,7 @@ module.exports.UpgradePopup = @MobxReact.observer class UpgradePopup extends Rea
                     this.setState(this.state)
                 } else {
                     MainStore.showUpgradePopup = false
+                    MainStore.showWelcome = true
                     Common.fillUserData()
                 }
             }).catch((error) => {
