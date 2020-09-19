@@ -1,0 +1,16 @@
+Overlay
+    Match info
+        players, score, odds
+    Cheers
+
+Scenes
+    Bracket
+    Playing
+    Hosts
+    Head Judge
+    Zoom
+    Raffle
+    Instant replay
+        Transition into/back
+
+Instant replay

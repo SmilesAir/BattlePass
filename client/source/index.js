@@ -14,6 +14,7 @@ const Setup = require("./setup.js")
 const Admin = require("./admin.js")
 const Basic = require("./basic.js")
 const Runtime = require("./runtime.js")
+const Overlay = require("./overlay.js")
 const Common = require("./common.js")
 
 require("./index.less")
@@ -68,6 +69,10 @@ MainStore.Auth = Auth
     }
 
     render() {
+        if (MainStore.url.searchParams.get("mode") === "overlay") {
+            return null
+        }
+
         return (
             <div>
                 { MainStore.showAuthenticator ? <AmplifyAuthenticator>
@@ -112,7 +117,7 @@ MainStore.Auth = Auth
         super()
 
         this.state = {
-            view: MainStore.url.searchParams.get("admin") || "basic"
+            view: MainStore.url.searchParams.get("mode") || "basic"
         }
     }
 
@@ -136,7 +141,7 @@ MainStore.Auth = Auth
     }
 
     render() {
-        if (!Common.isAdmin()) {
+        if (!Common.isAdmin() && this.state.view !== "overlay") {
             return this.getBasic()
         }
 
@@ -147,6 +152,8 @@ MainStore.Auth = Auth
                 return this.getSetup()
             case "runtime":
                 return this.getRuntime()
+            case "overlay":
+                return <Overlay />
             default:
                 return (
                     <div>

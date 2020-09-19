@@ -21,15 +21,30 @@ function fillNewMatchResults(duel) {
 }
 
 module.exports.updateBracketFromNamesString = function(namesString, createNewBracket) {
-    module.exports.updateBracketFromNames(namesString.split("\n"), createNewBracket)
+    Common.updateBracketFromNames(namesString.split("\n"), createNewBracket)
 }
 
 module.exports.getMatchResults = function() {
-    return MainStore.brackets[MainStore.currentBracket] && MainStore.brackets[MainStore.currentBracket].results
+    let currentBracket = Common.getCurrentBracket()
+    return currentBracket && currentBracket.results
 }
 
 module.exports.getCurrentBracket = function() {
-    return MainStore.brackets[MainStore.currentBracket]
+    return MainStore.brackets && MainStore.brackets[MainStore.currentBracket]
+}
+
+module.exports.getCurrentMatch = function() {
+    let currentBracket = Common.getCurrentBracket()
+    if (currentBracket !== undefined) {
+        return {
+            results: currentBracket.results[Common.reacketIdToDynamoId(MainStore.currentMatchId)],
+            reacket: MainStore.reacketMatches.find((match) => {
+                return match.id === MainStore.currentMatchId
+            })
+        }
+    }
+
+    return undefined
 }
 
 module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
@@ -38,10 +53,6 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
     })
 
     if (names.length < 4) {
-        return
-    }
-
-    if (names.length !== MainStore.brackets[MainStore.currentBracket].names.length) {
         return
     }
 
@@ -236,4 +247,30 @@ module.exports.areUncollectedRewards = function() {
     }
 
     return false
+}
+
+module.exports.idToPrettyName = function(id) {
+    let parts = Common.dynamoIdToReacketId(id).split(".")
+    if (parts.length !== 3) {
+        return "Invalid Id"
+    }
+
+    console.log(parts)
+
+    if (parts[0] === "2") {
+        return "Consolation Final"
+    }
+
+    let roundNames = [
+        "Final",
+        "Semifinal",
+        "Quaterfinal",
+        "Preliminary"
+    ]
+
+    if (`${MainStore.duel.p}` === parts[1]) {
+        return "Final"
+    }
+
+    return `${roundNames[MainStore.duel.p - parts[1]]} ${parts[2]}`
 }
