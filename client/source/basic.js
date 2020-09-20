@@ -156,6 +156,39 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         return <button onClick={() => this.collectRewards()}>Collect Rewards</button>
     }
 
+    sendCheer(playerIndex, type) {
+        --MainStore.userData[MainStore.eventName].cheersRemaining
+
+        MainStore.Auth.currentAuthenticatedUser().then((data) => {
+            fetchAuth("SEND_CHEER", { eventName: MainStore.eventName, displayName: MainStore.displayName, playerIndex: playerIndex, type: type }, undefined, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": data.signInUserSession.accessToken.jwtToken
+                }
+            }).catch((error) => {
+                console.error("Failed to update match", error)
+            })
+        })
+    }
+
+    getCheerElement() {
+        let matchData = Common.getCurrentMatch()
+        if (matchData === undefined) {
+            return null
+        }
+
+        let cheersRemaining = Common.getCheersRemaining()
+
+        return (
+            <div>
+                <div>Remaining Cheers: {cheersRemaining}</div>
+                <button onClick={() => this.sendCheer(matchData.reacket.players[0].id - 1, 0)} disabled={cheersRemaining <= 0}>Send CHEER for {matchData.reacket.players[0].name}</button>
+                <button onClick={() => this.sendCheer(matchData.reacket.players[1].id - 1, 0)} disabled={cheersRemaining <= 0}>Send CHEER for {matchData.reacket.players[1].name}</button>
+            </div>
+        )
+    }
+
     render() {
         let isFreeUser = Common.getUserTier() === 0
         return (
@@ -166,6 +199,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
                 <EventInfo />
                 <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={!isFreeUser} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
                 {this.getCollectRewardsElement()}
+                {this.getCheerElement()}
             </div>
         )
     }

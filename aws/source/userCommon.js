@@ -92,7 +92,8 @@ function getNewEventData() {
         raffleTicketCount: 0,
         picks: {},
         processed: {},
-        tier: 0
+        tier: 0,
+        cheersRemaining: 0
     }
 }
 
@@ -334,12 +335,13 @@ function upgradeUser(eventName, username, tier) {
     let userUpdateParams = {
         TableName: process.env.USER_TABLE,
         Key: {"key": username},
-        UpdateExpression: "set #eventName.tier = :tier",
+        UpdateExpression: "set #eventName.tier = :tier, #eventName.cheersRemaining = :cheers",
         ExpressionAttributeNames: {
             "#eventName": eventName
         },
         ExpressionAttributeValues: {
-            ":tier": tier
+            ":tier": tier,
+            ":cheers": 10
         },
         ReturnValues: "NONE"
     }
@@ -371,6 +373,65 @@ module.exports.setupCreateCode = (e, c, cb) => { Common.handler(e, c, cb, async 
         }
     }
     await docClient.put(params).promise().catch((error) => {
+        throw error
+    })
+
+    return {
+        success: true
+    }
+})}
+
+module.exports.sendCheer = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let username = event.requestContext.authorizer.jwt.claims.username
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let displayName = decodeURIComponent(event.pathParameters.displayName)
+    let playerIndex = decodeURIComponent(event.pathParameters.playerIndex)
+    let type = decodeURIComponent(event.pathParameters.type)
+
+    let userData = await getUserItem(username)
+    if (userData === undefined) {
+        throw "Can't find this user"
+    }
+
+    let userEventData = userData[eventName]
+    if (userEventData === undefined) {
+        throw "No user event data for " + eventName
+    }
+
+    if (userEventData.cheersRemaining <= 0) {
+        throw "No cheers remaining"
+    }
+
+    let userUpdateParams = {
+        TableName: process.env.USER_TABLE,
+        Key: {"key": username},
+        UpdateExpression: "set #eventName.cheersRemaining = #eventName.cheersRemaining + :negOne",
+        ExpressionAttributeNames: {
+            "#eventName": eventName
+        },
+        ExpressionAttributeValues: {
+            ":negOne": -1
+        },
+        ReturnValues: "NONE"
+    }
+    await docClient.update(userUpdateParams).promise().catch((error) => {
+        throw error
+    })
+
+    let eventUpdateParams = {
+        TableName: process.env.EVENT_TABLE,
+        Key: {"key": eventName},
+        UpdateExpression: "set cheers = list_append(cheers, :cheers)",
+        ExpressionAttributeValues: {
+            ":cheers": [{
+                p: playerIndex,
+                u: displayName,
+                t: type
+            }]
+        },
+        ReturnValues: "NONE"
+    }
+    await docClient.update(eventUpdateParams).promise().catch((error) => {
         throw error
     })
 

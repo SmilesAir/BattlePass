@@ -14,7 +14,7 @@ module.exports = @MobxReact.observer class Admin extends React.Component {
     }
 
     render() {
-        const urlBase = "http://192.168.0.197:8080/index.html?admin="
+        const urlBase = "http://192.168.0.197:8080/index.html?mode="
 
         if (Common.isAdmin() && MainStore.url.searchParams.get("mode") !== "overlay") {
             return (

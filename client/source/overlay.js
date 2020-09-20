@@ -4,6 +4,7 @@ const React = require("react")
 const MobxReact = require("mobx-react")
 
 const MainStore = require("./mainStore.js")
+const Cheer = require("./cheer.js")
 const Common = require("./common.js")
 
 require("./overlay.less")
@@ -15,12 +16,17 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
         Common.updateEventInfoFromAws().then(() => {
             this.forceUpdate()
         })
+
+        setInterval(() => {
+            Common.updateEventInfoFromAws()
+        }, 1000)
     }
 
     render() {
         return (
             <div className="overlayContainer">
                 <div className="title">{MainStore.eventName}</div>
+                <Cheer />
                 <Bracket />
             </div>
         )
@@ -33,9 +39,8 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
     }
 
     render() {
-        console.log(Common.getCurrentMatch())
         let matchData = Common.getCurrentMatch()
-        if (matchData === undefined || matchData.results === undefined || matchData.reacket === undefined) {
+        if (matchData === undefined) {
             return null
         }
 

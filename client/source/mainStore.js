@@ -6,6 +6,7 @@ module.exports = Mobx.observable({
     reacketMatches: [],
     brackets: {},
     eventRaffleTicketCount: 0,
+    eventCheers: undefined,
     isLoggedIn: false,
     cognitoUsername: undefined,
     showAuthenticator: false,
@@ -18,5 +19,6 @@ module.exports = Mobx.observable({
     showUpgradePopup: false,
     showWelcome: false,
     showRewards: false,
-    rewards: undefined
+    rewards: undefined,
+    eventDataUpdatedCallbacks: []
 })

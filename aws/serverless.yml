@@ -178,6 +178,13 @@ functions:
           path: /setupCreateCode/{eventName}/code/{code}
           method: post
           authorizer: serviceAuthorizer
+  sendCheer:
+    handler: source/userCommon.sendCheer
+    events:
+      - httpApi:
+          path: /sendCheer/{eventName}/displayName/{displayName}/playerIndex/{playerIndex}/type/{type}
+          method: post
+          authorizer: serviceAuthorizer
 
 resources:
   Resources:

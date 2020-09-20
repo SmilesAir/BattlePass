@@ -44,7 +44,8 @@ function createNewEvent(eventName) {
             currentBracket: undefined,
             brackets: {},
             raffleTicketCount: 0,
-            locked: true
+            locked: true,
+            cheers: []
         }
     }
 

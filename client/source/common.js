@@ -36,11 +36,15 @@ module.exports.getCurrentBracket = function() {
 module.exports.getCurrentMatch = function() {
     let currentBracket = Common.getCurrentBracket()
     if (currentBracket !== undefined) {
-        return {
-            results: currentBracket.results[Common.reacketIdToDynamoId(MainStore.currentMatchId)],
-            reacket: MainStore.reacketMatches.find((match) => {
-                return match.id === MainStore.currentMatchId
-            })
+        let results = currentBracket.results[Common.reacketIdToDynamoId(MainStore.currentMatchId)]
+        let reacket = MainStore.reacketMatches.find((match) => {
+            return match.id === MainStore.currentMatchId
+        })
+        if (results !== undefined && reacket !== undefined) {
+            return {
+                results: results,
+                reacket: reacket
+            }
         }
     }
 
@@ -189,7 +193,13 @@ module.exports.updateEventInfoFromAws = function() {
         MainStore.currentBracket = response.info.currentBracket
         MainStore.brackets = response.info.brackets
         MainStore.eventRaffleTicketCount = response.info.raffleTicketCount
+        MainStore.eventCheers = response.info.cheers
         MainStore.currentMatchId = module.exports.dynamoIdToReacketId(module.exports.getCurrentBracket().currentMatchId)
+
+        for (let updatedCallback of MainStore.eventDataUpdatedCallbacks) {
+            updatedCallback(response.info)
+        }
+
         module.exports.updateBracketFromNames(MainStore.brackets[MainStore.currentBracket].names)
     })
 }
@@ -228,7 +238,15 @@ module.exports.getUserTier = function() {
     return MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].tier || 0
 }
 
+module.exports.getCheersRemaining = function() {
+    return MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].cheersRemaining || 0
+}
+
 module.exports.areUncollectedRewards = function() {
+    if (MainStore === undefined || MainStore.brackets === undefined || MainStore.userData === undefined) {
+        return false
+    }
+
     let unprocessed = []
     let eventData = MainStore.userData[MainStore.eventName]
     for (let pick in eventData.picks) {
@@ -240,6 +258,10 @@ module.exports.areUncollectedRewards = function() {
     for (let pick of unprocessed) {
         let bracketName = pick.split(/_(.+)/)[0]
         let matchId = pick.split(/_(.+)/)[1]
+        if (MainStore.brackets[bracketName] === undefined) {
+            return false
+        }
+
         let matchData = MainStore.brackets[bracketName].results[matchId]
         if (matchData.isFinal === true) {
             return true
@@ -254,8 +276,6 @@ module.exports.idToPrettyName = function(id) {
     if (parts.length !== 3) {
         return "Invalid Id"
     }
-
-    console.log(parts)
 
     if (parts[0] === "2") {
         return "Consolation Final"
