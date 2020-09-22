@@ -13,12 +13,12 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
     constructor() {
         super()
 
-        Common.updateEventInfoFromAws().then(() => {
+        Common.updateEventInfoFromAws(true).then(() => {
             this.forceUpdate()
         })
 
         setInterval(() => {
-            Common.updateEventInfoFromAws()
+            Common.updateEventInfoFromAws(true)
         }, 1000)
     }
 

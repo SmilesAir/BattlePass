@@ -180,8 +180,8 @@ module.exports.updateScores = function() {
     }
 }
 
-module.exports.updateEventInfoFromAws = function() {
-    return fetchEx("GET_CURRENT_EVENT_INFO", undefined, undefined, {
+module.exports.updateEventInfoFromAws = function(getCheers) {
+    return fetchEx("GET_CURRENT_EVENT_INFO", undefined, getCheers === true ? { cheers: 1 } : undefined, {
         method: "GET",
         headers: {
             "Content-Type": "application/json"

@@ -179,6 +179,7 @@ module.exports.setupGetEvents = (e, c, cb) => { Common.handler(e, c, cb, async (
 
 module.exports.getCurrentEventInfo = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let masterInfo = await module.exports.getMasterInfo()
+    let fetchCheers = decodeURIComponent(event.queryStringParameters && event.queryStringParameters.cheers)
 
     if (masterInfo.data.current === null) {
         return {
@@ -192,6 +193,9 @@ module.exports.getCurrentEventInfo = (e, c, cb) => { Common.handler(e, c, cb, as
         Key: {"key": masterInfo.data.current}
     }
     return docClient.get(getParams).promise().then((response) => {
+        if (fetchCheers !== "1") {
+            response.Item.cheers = []
+        }
         return {
             success: true,
             info: response.Item

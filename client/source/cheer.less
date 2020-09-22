@@ -2,17 +2,29 @@
 .cheerContainer {
     position: fixed;
     display: flex;
-    top: 5%;
-    left: 5%;
-    width: 90%;
-    height: 90%;
+    bottom: 0%;
+    right: 0%;
+    width: 50%;
+    height: 30%;
     z-index: 100;
 
     flex-direction: column;
     justify-content: space-evenly;
     align-items: center;
 
-    border: gray 5px solid;
-    border-radius: 10px;
-    background-color: white;
+    background-color: rgba(0, 0, 0, 0);
+
+    transition-duration: .7s;
+    transform: scale(1);
+    opacity: 1;
+
+    .gif {
+        width: 100px;
+        object-fit: contain;
+    }
+}
+
+.cheerHidden {
+    transform: scale(0);
+    opacity: 0;
 }

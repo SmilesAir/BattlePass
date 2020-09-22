@@ -5,6 +5,8 @@ const MobxReact = require("mobx-react")
 
 const MainStore = require("./mainStore.js")
 
+const gif = require("./art/kiss.gif")
+
 require("./cheer.less")
 
 module.exports = @MobxReact.observer class Cheer extends React.Component {
@@ -16,10 +18,23 @@ module.exports = @MobxReact.observer class Cheer extends React.Component {
             eventDataInited: false,
             cheersToShow: [],
             showCheer: false,
+            // playerName: "James Wiseman", //undefined,
+            // displayName: "Ryan Young", //undefined,
+            // type: 0 //undefined
             playerName: undefined,
             displayName: undefined,
             type: undefined
         }
+
+        // setTimeout(() => {
+        //     this.state.showCheer = true
+        //     this.setState(this.state)
+
+        //     setTimeout(() => {
+        //         this.state.showCheer = false
+        //         this.setState(this.state)
+        //     }, 4000)
+        // }, 1000)
 
         MainStore.eventDataUpdatedCallbacks.push((eventData) => this.onEventDataUpdated(eventData))
     }
@@ -40,7 +55,7 @@ module.exports = @MobxReact.observer class Cheer extends React.Component {
     }
 
     showNextCheer() {
-        if (this.state.cheersToShow.length > 0) {
+        if (this.state.showCheer !== true && this.state.cheersToShow.length > 0) {
             let cheerData = this.state.cheersToShow[0]
             this.state.showCheer = true
             this.state.playerName = MainStore.namesArray[cheerData.p]
@@ -51,7 +66,7 @@ module.exports = @MobxReact.observer class Cheer extends React.Component {
 
             setTimeout(() => {
                 this.endCheer()
-            }, 2000)
+            }, 4000)
         }
     }
 
@@ -61,17 +76,17 @@ module.exports = @MobxReact.observer class Cheer extends React.Component {
 
         setTimeout(() => {
             this.showNextCheer()
-        }, 500)
+        }, 800)
     }
 
     render() {
-        if (this.state.showCheer !== true) {
-            return null
-        }
-
+        let className = `cheerContainer ${this.state.showCheer ? "" : "cheerHidden"}`
         return (
-            <div className="cheerContainer">
-                {this.state.displayName} send a cheer for {this.state.playerName}. Type {this.state.type}
+            <div className={className}>
+                <img className="gif" src={gif} />
+                <h2>
+                    {this.state.displayName} cheered {this.state.playerName}
+                </h2>
             </div>
         )
     }
