@@ -198,7 +198,8 @@ module.exports.getCurrentEventInfo = (e, c, cb) => { Common.handler(e, c, cb, as
         }
         return {
             success: true,
-            info: response.Item
+            info: response.Item,
+            constants: masterInfo.constants
         }
     })
 })}

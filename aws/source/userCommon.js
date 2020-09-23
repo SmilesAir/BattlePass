@@ -398,19 +398,30 @@ module.exports.sendCheer = (e, c, cb) => { Common.handler(e, c, cb, async (event
         throw "No user event data for " + eventName
     }
 
-    if (userEventData.cheersRemaining <= 0) {
+    let masterInfo = await EventCommon.getMasterInfo()
+
+    let earnedCheers = (Date.now() - userEventData.lastCheerAt) / masterInfo.constants.cheerCooldown
+    let cheersRemaining = Math.max(userEventData.cheersRemaining, Math.min(masterInfo.constants.maxCheers, userEventData.cheersRemaining + Math.floor(earnedCheers)))
+
+    if (cheersRemaining <= 0) {
         throw "No cheers remaining"
+    }
+
+    let partial = 0
+    if (cheersRemaining < masterInfo.constants.maxCheers) {
+        partial = (earnedCheers % 1) * masterInfo.constants.cheerCooldown
     }
 
     let userUpdateParams = {
         TableName: process.env.USER_TABLE,
         Key: {"key": username},
-        UpdateExpression: "set #eventName.cheersRemaining = #eventName.cheersRemaining + :negOne",
+        UpdateExpression: "set #eventName.cheersRemaining = :cheersRemaining, #eventName.lastCheerAt = :now",
         ExpressionAttributeNames: {
             "#eventName": eventName
         },
         ExpressionAttributeValues: {
-            ":negOne": -1
+            ":cheersRemaining": cheersRemaining - 1,
+            ":now": Date.now() - partial
         },
         ReturnValues: "NONE"
     }

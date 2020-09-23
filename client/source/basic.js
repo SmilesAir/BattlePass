@@ -19,6 +19,8 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
 
         Common.updateEventInfoFromAws().then(() => {
             this.forceUpdate()
+
+            this.update()
         })
 
         this.state = {
@@ -157,7 +159,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
     }
 
     sendCheer(playerIndex, type) {
-        --MainStore.userData[MainStore.eventName].cheersRemaining
+        Common.consumeCheer()
 
         MainStore.Auth.currentAuthenticatedUser().then((data) => {
             fetchAuth("SEND_CHEER", { eventName: MainStore.eventName, displayName: MainStore.displayName, playerIndex: playerIndex, type: type }, undefined, {
@@ -170,6 +172,20 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
                 console.error("Failed to update match", error)
             })
         })
+
+        this.update()
+    }
+
+    update() {
+        if (this.updating !== true && (Common.getCheersRemaining() < MainStore.constants.maxCheers || this.nextCheerString.length > 0)) {
+            this.forceUpdate()
+
+            this.updating = true
+            this.updateHandle = setTimeout(() => {
+                this.updating = false
+                this.update()
+            }, 300)
+        }
     }
 
     getCheerElement() {
@@ -178,11 +194,13 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
             return null
         }
 
+        let nextCheerTime = Common.getTimeToNextEarnedCheer()
+        this.nextCheerString = nextCheerTime !== undefined ? ` (Gain 1 cheer in ${Math.floor(nextCheerTime / 60000)}:${Math.floor(nextCheerTime / 1000 % 60).toString().padStart(2, "0")})` : ""
         let cheersRemaining = Common.getCheersRemaining()
 
         return (
             <div>
-                <div>Remaining Cheers: {cheersRemaining}</div>
+                <div>Remaining Cheers: {cheersRemaining}{this.nextCheerString}</div>
                 <button onClick={() => this.sendCheer(matchData.reacket.players[0].id - 1, 0)} disabled={cheersRemaining <= 0}>Send CHEER for {matchData.reacket.players[0].name}</button>
                 <button onClick={() => this.sendCheer(matchData.reacket.players[1].id - 1, 0)} disabled={cheersRemaining <= 0}>Send CHEER for {matchData.reacket.players[1].name}</button>
             </div>

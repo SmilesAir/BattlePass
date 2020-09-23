@@ -195,6 +195,7 @@ module.exports.updateEventInfoFromAws = function(getCheers) {
         MainStore.eventRaffleTicketCount = response.info.raffleTicketCount
         MainStore.eventCheers = response.info.cheers
         MainStore.currentMatchId = module.exports.dynamoIdToReacketId(module.exports.getCurrentBracket().currentMatchId)
+        MainStore.constants = response.constants
 
         for (let updatedCallback of MainStore.eventDataUpdatedCallbacks) {
             updatedCallback(response.info)
@@ -239,7 +240,45 @@ module.exports.getUserTier = function() {
 }
 
 module.exports.getCheersRemaining = function() {
-    return MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].cheersRemaining || 0
+    let data = MainStore.userData && MainStore.userData[MainStore.eventName]
+    if (data === undefined) {
+        return 0
+    }
+
+    return Math.max(data.cheersRemaining, Math.min(MainStore.constants.maxCheers, data.cheersRemaining + Math.floor((Date.now() - data.lastCheerAt) / MainStore.constants.cheerCooldown)))
+}
+
+module.exports.consumeCheer = function() {
+    let data = MainStore.userData && MainStore.userData[MainStore.eventName]
+    if (data === undefined) {
+        return
+    }
+
+    let now = Date.now()
+    let earnedCheers = (now - data.lastCheerAt) / MainStore.constants.cheerCooldown
+    let cheersRemaining = Common.getCheersRemaining()
+    let partial = 0
+    if (cheersRemaining < MainStore.constants.maxCheers) {
+        partial = earnedCheers % 1 * MainStore.constants.cheerCooldown
+    }
+
+    data.cheersRemaining = cheersRemaining - 1
+    data.lastCheerAt = now - partial
+}
+
+module.exports.getTimeToNextEarnedCheer = function() {
+    let data = MainStore.userData && MainStore.userData[MainStore.eventName]
+    if (data === undefined) {
+        return undefined
+    }
+
+    let cheersRemaining = Common.getCheersRemaining()
+
+    if (cheersRemaining >= MainStore.constants.maxCheers) {
+        return undefined
+    }
+
+    return MainStore.constants.cheerCooldown - (Date.now() - data.lastCheerAt) / MainStore.constants.cheerCooldown % 1 * MainStore.constants.cheerCooldown
 }
 
 module.exports.areUncollectedRewards = function() {
