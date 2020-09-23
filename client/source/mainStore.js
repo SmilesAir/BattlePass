@@ -1,6 +1,9 @@
 
 const Mobx = require("mobx")
 
+let requireTest = require.context("./art", true, /\.gif$/)
+let cheerGifs = requireTest.keys().map(requireTest)
+
 module.exports = Mobx.observable({
     eventName: undefined,
     reacketMatches: [],
@@ -20,5 +23,6 @@ module.exports = Mobx.observable({
     showWelcome: false,
     showRewards: false,
     rewards: undefined,
-    eventDataUpdatedCallbacks: []
+    eventDataUpdatedCallbacks: [],
+    cheerGifs: cheerGifs
 })

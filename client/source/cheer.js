@@ -5,8 +5,6 @@ const MobxReact = require("mobx-react")
 
 const MainStore = require("./mainStore.js")
 
-const gif = require("./art/kiss.gif")
-
 require("./cheer.less")
 
 module.exports = @MobxReact.observer class Cheer extends React.Component {
@@ -83,7 +81,7 @@ module.exports = @MobxReact.observer class Cheer extends React.Component {
         let className = `cheerContainer ${this.state.showCheer ? "" : "cheerHidden"}`
         return (
             <div className={className}>
-                <img className="gif" src={gif} />
+                <img className="gif" src={MainStore.cheerGifs[this.state.type]} />
                 <h2>
                     {this.state.displayName} cheered {this.state.playerName}
                 </h2>

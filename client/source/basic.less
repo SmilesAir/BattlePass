@@ -8,3 +8,28 @@
     background-color: white;
     border: 3px black solid;
 }
+
+.cheerPicker {
+    position: relative;
+    margin: .5%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    transition: .25s;
+    transform: scale(1);
+    transform-origin: top;
+
+    border: solid gray 2px;
+    border-radius: 5px;
+
+    .cheerGif {
+        height: 15vw;
+        margin: .2%;
+        border: solid gray 2px;
+        border-radius: 2px;
+    }
+}
+
+.cheerPickerHidden {
+    transform: scale(1, 0);
+}

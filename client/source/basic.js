@@ -26,7 +26,9 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         this.state = {
             pickMatchId: undefined,
             pickMatchPlayers: undefined,
-            pickIndex: undefined
+            pickIndex: undefined,
+            showCheerPicker: false,
+            cheerPlayerIndex: undefined
         }
     }
 
@@ -188,6 +190,30 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         }
     }
 
+    showCheerPicker(playerIndex) {
+        this.state.cheerPlayerIndex = playerIndex
+        this.state.showCheerPicker = true
+        this.setState(this.state)
+    }
+
+    pickCheer(index) {
+        this.state.showCheerPicker = false
+        this.setState(this.state)
+        this.sendCheer(this.state.cheerPlayerIndex, index)
+    }
+
+    getCheerPicker() {
+        let className = `cheerPicker ${this.state.showCheerPicker ? "" : "cheerPickerHidden"}`
+        let types = MainStore.cheerGifs.map((path, index) => {
+            return <img className="cheerGif" key={index} src={path} onClick={() => this.pickCheer(index)} />
+        })
+        return (
+            <div className={className}>
+                {types}
+            </div>
+        )
+    }
+
     getCheerElement() {
         let matchData = Common.getCurrentMatch()
         if (matchData === undefined) {
@@ -201,8 +227,9 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         return (
             <div>
                 <div>Remaining Cheers: {cheersRemaining}{this.nextCheerString}</div>
-                <button onClick={() => this.sendCheer(matchData.reacket.players[0].id - 1, 0)} disabled={cheersRemaining <= 0}>Send CHEER for {matchData.reacket.players[0].name}</button>
-                <button onClick={() => this.sendCheer(matchData.reacket.players[1].id - 1, 0)} disabled={cheersRemaining <= 0}>Send CHEER for {matchData.reacket.players[1].name}</button>
+                <button onClick={() => this.showCheerPicker(matchData.reacket.players[0].id - 1)} disabled={cheersRemaining <= 0}>CHEER for {matchData.reacket.players[0].name}</button>
+                <button onClick={() => this.showCheerPicker(matchData.reacket.players[1].id - 1)} disabled={cheersRemaining <= 0}>CHEER for {matchData.reacket.players[1].name}</button>
+                {this.getCheerPicker()}
             </div>
         )
     }
