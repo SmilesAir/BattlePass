@@ -161,8 +161,8 @@ module.exports.updatePick = (e, c, cb) => { Common.handler(e, c, cb, async (even
             delta0 = -wager
             delta1 = wager
         } else {
-            delta0 = wager
-            delta1 = -wager
+            delta0 = -wager
+            delta1 = wager
         }
     }
 
