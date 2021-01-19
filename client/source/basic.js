@@ -17,6 +17,8 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
     constructor() {
         super()
 
+        this.nextCheerString = ""
+
         Common.updateEventInfoFromAws().then(() => {
             this.forceUpdate()
 
@@ -45,7 +47,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         }) !== undefined
 
         return (
-            <button onClick={() => this.onSetMatch(id, players)} disabled={hasTBD || locked}>Bet</button>
+            <button onClick={() => this.onSetMatch(id, players)} disabled={hasTBD || locked}>Pick</button>
         )
     }
 
@@ -242,7 +244,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
                 <Rewards />
                 {this.getPickElement()}
                 <EventInfo />
-                <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={!isFreeUser} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
+                <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={true} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
                 {this.getCollectRewardsElement()}
                 {this.getCheerElement()}
             </div>

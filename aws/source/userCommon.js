@@ -93,7 +93,8 @@ function getNewEventData() {
         picks: {},
         processed: {},
         tier: 0,
-        cheersRemaining: 0
+        cheersRemaining: 0,
+        lastCheerAt: 0
     }
 }
 

@@ -51,6 +51,29 @@ module.exports.getCurrentMatch = function() {
     return undefined
 }
 
+function getReacketId(id, roundCount, matches) {
+    if (id.s === 2) {
+        return "CF"
+    } else if (id.r === roundCount) {
+        return "FN"
+    }
+
+    let topNum = Math.pow(2, roundCount - id.r + 1)
+    let matchNum = 1
+    for (let match of matches) {
+        if (match.id.s === id.s && match.id.r === id.r) {
+            let isSpacer = match.p.find((playerIndex) => {
+                return playerIndex === -1
+            }) !== undefined
+            if (!isSpacer) {
+                matchNum += match.id.m < id.m
+            }
+        }
+    }
+
+    return `${topNum}.${matchNum}`
+}
+
 module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
     let names = namesArray.filter((name) => {
         return name !== undefined && name.length > 0
@@ -74,6 +97,11 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
         if (result.isFinal) {
             MainStore.duel.score(result.duelId, result.score)
         }
+    }
+
+    let roundCount = 0
+    for (let match of MainStore.duel.matches) {
+        roundCount = Math.max(match.id.r, roundCount)
     }
 
     MainStore.reacketMatches.splice(0, MainStore.reacketMatches.length)
@@ -103,7 +131,7 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
             }
         }
         let newMatch = {
-            id: id,
+            id: getReacketId(match.id, roundCount, MainStore.duel.matches),
             round: match.id.s === 2 ? MainStore.duel.p : match.id.r,
             match: match.id.m,
             players: [],
@@ -189,19 +217,23 @@ module.exports.updateEventInfoFromAws = function(getCheers) {
     }).then((response) => {
         return response.json()
     }).then((response) => {
-        MainStore.eventName = response.info.eventName
-        MainStore.currentBracket = response.info.currentBracket
-        MainStore.brackets = response.info.brackets
-        MainStore.eventRaffleTicketCount = response.info.raffleTicketCount
-        MainStore.eventCheers = response.info.cheers
-        MainStore.currentMatchId = module.exports.dynamoIdToReacketId(module.exports.getCurrentBracket().currentMatchId)
-        MainStore.constants = response.constants
+        if (response.info !== undefined) {
+            MainStore.eventName = response.info.eventName
+            MainStore.currentBracket = response.info.currentBracket
+            MainStore.brackets = response.info.brackets
+            MainStore.eventRaffleTicketCount = response.info.raffleTicketCount
+            MainStore.eventCheers = response.info.cheers
+            MainStore.currentMatchId = module.exports.dynamoIdToReacketId(module.exports.getCurrentBracket().currentMatchId)
+            MainStore.constants = response.constants
 
-        for (let updatedCallback of MainStore.eventDataUpdatedCallbacks) {
-            updatedCallback(response.info)
+            for (let updatedCallback of MainStore.eventDataUpdatedCallbacks) {
+                updatedCallback(response.info)
+            }
+
+            module.exports.updateBracketFromNames(MainStore.brackets[MainStore.currentBracket].names)
+        } else {
+            console.log("No events")
         }
-
-        module.exports.updateBracketFromNames(MainStore.brackets[MainStore.currentBracket].names)
     })
 }
 

@@ -20,9 +20,9 @@ let urls = {
 function buildUrl(isAuth, urlKey, pathParams, queryParams) {
     let path = undefined
     if (isAuth) {
-        path = __STAGE__ === "DEVELOPMENT" ? "https://odnou7cv5a.execute-api.us-west-2.amazonaws.com" : "https://w0wkbj0dd9.execute-api.us-west-2.amazonaws.com"
+        path = __STAGE__ === "DEVELOPMENT" ? "https://odnou7cv5a.execute-api.us-west-2.amazonaws.com" : "https://jz56qku4ll.execute-api.us-west-2.amazonaws.com"
     } else {
-        path = __STAGE__ === "DEVELOPMENT" ? "https://6rcysbv7wb.execute-api.us-west-2.amazonaws.com/development" : "https://w0wkbj0dd9.execute-api.us-west-2.amazonaws.com"
+        path = __STAGE__ === "DEVELOPMENT" ? "https://6rcysbv7wb.execute-api.us-west-2.amazonaws.com/development" : "https://uj3vhwj8i1.execute-api.us-west-2.amazonaws.com/production"
     }
 
     let pathReplaceData = {

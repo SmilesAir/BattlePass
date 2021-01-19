@@ -19,18 +19,30 @@ const Common = require("./common.js")
 
 require("./index.less")
 
-Amplify.configure({
-    Auth: {
-        region: "us-west-2",
-        userPoolId: "us-west-2_lQ8aO1UoM",
-        userPoolWebClientId: "5pu56p45tjj0dm27n4o944rprn",
-        mandatorySignIn: true
-    }
-})
+if (__STAGE__ === "DEVELOPMENT") {
+    Amplify.configure({
+        Auth: {
+            region: "us-west-2",
+            userPoolId: "us-west-2_lQ8aO1UoM",
+            userPoolWebClientId: "5pu56p45tjj0dm27n4o944rprn",
+            mandatorySignIn: true
+        }
+    })
+} else {
+    Amplify.configure({
+        Auth: {
+            region: "us-west-2",
+            userPoolId: "us-west-2_IazZX4szP",
+            userPoolWebClientId: "44oo1ud0b7qk101c3aaf8arbts",
+            mandatorySignIn: true
+        }
+    })
+}
 
 MainStore.url = new URL(window.location.href)
 MainStore.Reacket = Reacket
 MainStore.Auth = Auth
+MainStore.AmplifySignOut = AmplifySignOut
 
 @MobxReact.observer class AccountLogin extends React.Component {
     constructor() {
@@ -75,38 +87,42 @@ MainStore.Auth = Auth
 
         return (
             <div>
-                { MainStore.showAuthenticator ? <AmplifyAuthenticator>
-                    <AmplifySignUp
-                        slot="sign-up"
-                        formFields={[
-                            {
-                                type: "username",
-                                label: "Email *"
-                            },
-                            { type: "password" },
-                            {
-                                type: "name",
-                                label: "Display Name *",
-                                placeholder: "Enter your display name",
-                                required: true
-                            }
-                        ]}
-                    />
-                    <AmplifySignIn
-                        slot="sign-in"
-                        formFields={[
-                            {
-                                type: "username",
-                                label: "Email *"
-                            },
-                            { type: "password" },
-                        ]}
-                    />
-                </AmplifyAuthenticator> : null }
-                { !MainStore.isLoggedIn && !MainStore.showAuthenticator ? <AmplifySignInButton onClick={() => {
-                    MainStore.showAuthenticator = true
-                }}>Sign Up / Sign In</AmplifySignInButton> : null }
-                { MainStore.isLoggedIn ? <AmplifySignOut /> : null }
+                <div>
+                    { MainStore.showAuthenticator ? <AmplifyAuthenticator>
+                        <AmplifySignUp
+                            slot="sign-up"
+                            formFields={[
+                                {
+                                    type: "username",
+                                    label: "Email *"
+                                },
+                                { type: "password" },
+                                {
+                                    type: "name",
+                                    label: "Display Name *",
+                                    placeholder: "Enter your display name",
+                                    required: true
+                                }
+                            ]}
+                        />
+                        <AmplifySignIn
+                            slot="sign-in"
+                            formFields={[
+                                {
+                                    type: "username",
+                                    label: "Email *"
+                                },
+                                { type: "password" },
+                            ]}
+                        />
+                    </AmplifyAuthenticator> : null }
+                    { !MainStore.isLoggedIn && !MainStore.showAuthenticator ? <AmplifySignInButton onClick={() => {
+                        MainStore.showAuthenticator = true
+                    }}>Sign Up / Sign In</AmplifySignInButton> : null }
+                </div>
+                <div className="signOut">
+                    { MainStore.isLoggedIn ? <AmplifySignOut /> : null }
+                </div>
             </div>
         )
     }

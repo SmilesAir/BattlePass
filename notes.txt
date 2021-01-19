@@ -14,3 +14,9 @@ Scenes
         Transition into/back
 
 Instant replay
+
+
+player highlights green when 100% pick rate
+Nan on cheers after new account
+round titles alignment
+match names

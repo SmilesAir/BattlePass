@@ -193,13 +193,23 @@ module.exports.getCurrentEventInfo = (e, c, cb) => { Common.handler(e, c, cb, as
         Key: {"key": masterInfo.data.current}
     }
     return docClient.get(getParams).promise().then((response) => {
-        if (fetchCheers !== "1") {
-            response.Item.cheers = []
+        if (Common.isEmptyObject(response)) {
+            console.log("No events")
+
+            return {
+                success: true,
+                constants: masterInfo.constants
+            }
         }
-        return {
-            success: true,
-            info: response.Item,
-            constants: masterInfo.constants
+        else {
+            if (fetchCheers !== "1") {
+                response.Item.cheers = []
+            }
+            return {
+                success: true,
+                info: response.Item,
+                constants: masterInfo.constants
+            }
         }
     })
 })}
@@ -210,7 +220,10 @@ module.exports.getMasterInfo = function() {
         Key: {"key": "masterInfo"}
     }
 
+    console.log(getParams)
+
     return docClient.get(getParams).promise().then((response) => {
+        console.log(response)
         if (Common.isEmptyObject(response)) {
             throw "missing masterInfo"
         }

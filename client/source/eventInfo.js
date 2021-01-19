@@ -21,11 +21,12 @@ module.exports = @MobxReact.observer class EventInfo extends React.Component {
         let tierString = tier > 0 ? "Premium" : "Free"
 
         if (tier === 0) {
+            //  ({tierString}) | <UpgradeButton />
             return (
                 <div>
                     <UpgradePopup />
                     <div>
-                        {MainStore.eventName} | Username: {MainStore.displayName} ({tierString}) | <UpgradeButton />
+                        {MainStore.eventName} | Username: {MainStore.displayName}
                     </div>
                 </div>
             )
