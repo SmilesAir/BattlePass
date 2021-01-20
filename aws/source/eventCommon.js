@@ -99,7 +99,7 @@ module.exports.setupNewBracket = (e, c, cb) => { Common.handler(e, c, cb, async 
 module.exports.setupSetCurrentEvent = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let eventName = decodeURIComponent(event.pathParameters.eventName)
 
-    let eventInfo = await getEventInfo(eventName)
+    let eventInfo = await module.exports.getEventInfo(eventName)
     if (Common.isEmptyObject(eventInfo)) {
         return {
             success: false,
