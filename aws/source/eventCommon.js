@@ -62,12 +62,21 @@ module.exports.setupNewBracket = (e, c, cb) => { Common.handler(e, c, cb, async 
         TableName: process.env.EVENT_TABLE,
         Key: {"key": eventName}
     }
-    await docClient.get(getParams).promise().then((response) => {
+    let eventData = await docClient.get(getParams).promise().then((response) => {
         let bracketData = response.Item.brackets[bracketName]
         if (bracketData === undefined || bracketData.locked !== true) {
             doUpdate = true
         }
+
+        return response.Item
     }).catch()
+
+    if (eventData.brackets !== undefined && eventData.brackets[bracketName].isLocked === true) {
+        return {
+            success: false,
+            message: "Bracket is locked!"
+        }
+    }
 
     if (doUpdate) {
         let updateParams = {
@@ -349,5 +358,47 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
                 message: error
             }
         })
+    }
+})}
+
+module.exports.getCurrentEventLeaderboard = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+
+    let params = {
+        TableName: process.env.USER_TABLE,
+        ProjectionExpression: "#eventName.points, displayName",
+        ExpressionAttributeNames: {
+            "#eventName": eventName
+        }
+    }
+
+    let playerData = []
+    let onScan = async (err, data) => {
+        if (err) {
+            throw new "Error scaning player points for leaderboard. " + err
+        } else {
+            playerData = playerData.concat(data.Items.map((item) => {
+                return {
+                    displayName: item.displayName || "Anonymous",
+                    points: item[eventName].points
+                }
+            }))
+
+            if (data.LastEvaluatedKey !== undefined) {
+                params.ExclusiveStartKey = data.LastEvaluatedKey
+                await docClient.scan(params, onScan).promise()
+            }
+        }
+    }
+
+    await docClient.scan(params, onScan).promise()
+
+    playerData = playerData.sort((a, b) => {
+        return b.points - a.points
+    })
+
+    return {
+        success: true,
+        leaderboardData: playerData
     }
 })}

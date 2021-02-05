@@ -5,6 +5,7 @@ const MobxReact = require("mobx-react")
 
 const MainStore = require("./mainStore.js")
 const { UpgradeButton, UpgradePopup } = require("./upgrade.js")
+const Common = require("./common.js")
 
 require("./eventInfo.less")
 
@@ -19,6 +20,7 @@ module.exports = @MobxReact.observer class EventInfo extends React.Component {
         let points = MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].points || 0
         let tier = MainStore.userData && MainStore.userData[MainStore.eventName] && MainStore.userData[MainStore.eventName].tier || 0
         let tierString = tier > 0 ? "Premium" : "Free"
+        let level = Common.getLevelFromXp(points / 100)
 
         if (tier === 0) {
             //  ({tierString}) | <UpgradeButton />
@@ -26,7 +28,7 @@ module.exports = @MobxReact.observer class EventInfo extends React.Component {
                 <div>
                     <UpgradePopup />
                     <div>
-                        {MainStore.eventName} | Username: {MainStore.displayName}
+                        {MainStore.eventName} | Username: {MainStore.displayName} | Battle Pass Points: {points} | Battle Pass Level: {level}
                     </div>
                 </div>
             )

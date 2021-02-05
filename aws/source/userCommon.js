@@ -193,6 +193,7 @@ module.exports.updatePick = (e, c, cb) => { Common.handler(e, c, cb, async (even
 module.exports.collectRewards = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let username = event.requestContext.authorizer.jwt.claims.username
     let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let displayName = decodeURIComponent(event.pathParameters.displayName)
 
     let userData = await getUserItem(username)
     if (userData === undefined) {
@@ -253,7 +254,7 @@ module.exports.collectRewards = (e, c, cb) => { Common.handler(e, c, cb, async (
                 names[`#pickId${index}`] = pickId
                 return `#eventName.#processed.#pickId${index} = :now`
             }).join(", ")
-            exp += ", #eventName.points = #eventName.points + :points"
+            exp += ", #eventName.points = #eventName.points + :points, displayName = :displayName"
 
             let userUpdateParams = {
                 TableName: process.env.USER_TABLE,
@@ -262,7 +263,8 @@ module.exports.collectRewards = (e, c, cb) => { Common.handler(e, c, cb, async (
                 ExpressionAttributeNames: names,
                 ExpressionAttributeValues: {
                     ":now": Date.now(),
-                    ":points": rewards.points
+                    ":points": rewards.points,
+                    ":displayName": displayName || "Anonymous"
                 },
                 ReturnValues: "NONE"
             }

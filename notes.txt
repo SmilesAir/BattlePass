@@ -18,5 +18,6 @@ Instant replay
 
 player highlights green when 100% pick rate
 Nan on cheers after new account
-round titles alignment
-match names
+
+match name in Runtime
+frontend ui for bracket lock

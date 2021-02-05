@@ -46,6 +46,7 @@ provider:
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.EVENT_TABLE}"
     - Effect: Allow
       Action:
+        - dynamodb:Scan
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
@@ -136,6 +137,13 @@ functions:
           path: updateMatchScore/{eventName}/bracket/{bracketName}/matchId/{matchId}
           method: post
           cors: true
+  getCurrentEventLeaderboard:
+    handler: source/eventCommon.getCurrentEventLeaderboard
+    events:
+      - http:
+          path: getCurrentEventLeaderboard/{eventName}
+          method: get
+          cors: true
   getUserData:
     handler: source/userCommon.getUserData
     events:
@@ -161,7 +169,7 @@ functions:
     handler: source/userCommon.collectRewards
     events:
       - httpApi:
-          path: /collectRewards/{eventName}
+          path: /collectRewards/{eventName}/displayName/{displayName}
           method: post
           authorizer: serviceAuthorizer
   redeemCode:

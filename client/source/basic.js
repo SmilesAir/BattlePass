@@ -123,7 +123,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
 
     collectRewards() {
         MainStore.Auth.currentAuthenticatedUser().then((data) => {
-            fetchAuth("COLLECT_REWARDS", { eventName: MainStore.eventName }, undefined, {
+            fetchAuth("COLLECT_REWARDS", { eventName: MainStore.eventName, displayName: MainStore.displayName }, undefined, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -151,15 +151,19 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
     }
 
     getCollectRewardsElement() {
-        if (Common.getUserTier() === 0) {
-            return null
-        }
+        // if (Common.getUserTier() === 0) {
+        //     return null
+        // }
 
         if (!Common.areUncollectedRewards()) {
             return null
         }
 
-        return <button onClick={() => this.collectRewards()}>Collect Rewards</button>
+        return (
+            <div>
+                <button className="collectRewardsButton" onClick={() => this.collectRewards()}>Collect Rewards</button>
+            </div>
+        )
     }
 
     sendCheer(playerIndex, type) {
@@ -243,10 +247,13 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
                 <Welcome />
                 <Rewards />
                 {this.getPickElement()}
+                <div className="watchLinkContainer">
+                    <a className="watchLink" href="https://www.frisbeeguru.com/tiny-room-battle-challenge-3-2021/" target="_blank">Watch Tiny Room Challenge 3</a>
+                </div>
                 <EventInfo />
-                <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={true} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
                 {this.getCollectRewardsElement()}
-                {this.getCheerElement()}
+                <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={true} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
+                {/* {this.getCheerElement()} */}
             </div>
         )
     }

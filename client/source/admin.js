@@ -14,7 +14,7 @@ module.exports = @MobxReact.observer class Admin extends React.Component {
     }
 
     render() {
-        const urlBase = "http://192.168.0.197:8080/index.html?mode="
+        const urlBase = __STAGE__ === "DEVELOPMENT" ? "http://localhost:8080/index.html?mode=" : "https://tinyroomchallenge.com?mode="
 
         if (Common.isAdmin() && MainStore.url.searchParams.get("mode") !== "overlay") {
             return (
@@ -24,6 +24,7 @@ module.exports = @MobxReact.observer class Admin extends React.Component {
                     <a className="link" href={`${urlBase}setup`}>Setup</a>
                     <a className="link" href={`${urlBase}runtime`}>Runtime</a>
                     <a className="link" href={`${urlBase}overlay&cheers=1`}>Overlay</a>
+                    <a className="link" href={`${urlBase}leaderboard`}>Leaderboard</a>
                 </div>
             )
         }

@@ -27,7 +27,8 @@ module.exports = @MobxReact.observer class Rewards extends React.Component {
             switch (reward) {
                 case "raffleTicketCount":
                     name = "Raffle Tickets"
-                    break
+                    continue
+                    //break
                 case "points":
                     name = "Battle Pass Points"
                     break

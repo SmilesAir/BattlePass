@@ -9,7 +9,7 @@ const Common = require("./common.js")
 
 require("./overlay.less")
 
-module.exports = @MobxReact.observer class Runtime extends React.Component {
+module.exports = @MobxReact.observer class Overlay extends React.Component {
     constructor() {
         super()
 
@@ -25,7 +25,7 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
     render() {
         return (
             <div className="overlayContainer">
-                <div className="title">{MainStore.eventName}</div>
+                {/* <div className="title">{MainStore.eventName}</div> */}
                 <Cheer />
                 <Bracket />
             </div>

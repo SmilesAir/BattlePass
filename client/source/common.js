@@ -318,7 +318,7 @@ module.exports.getTimeToNextEarnedCheer = function() {
 }
 
 module.exports.areUncollectedRewards = function() {
-    if (MainStore === undefined || MainStore.brackets === undefined || MainStore.userData === undefined) {
+    if (MainStore === undefined || MainStore.brackets === undefined || MainStore.userData === undefined || MainStore.userData[MainStore.eventName] === undefined) {
         return false
     }
 
@@ -368,4 +368,22 @@ module.exports.idToPrettyName = function(id) {
     }
 
     return `${roundNames[MainStore.duel.p - parts[1]]} ${parts[2]}`
+}
+
+module.exports.getXpForLevel = function(level) {
+    if (level < 1) {
+        return 0
+    }
+
+    let xp = Math.pow(1.3, level - 1) + module.exports.getXpForLevel(level - 1)
+    return xp
+}
+
+module.exports.getLevelFromXp = function(xp) {
+    let level = 0
+    for (; xp >= module.exports.getXpForLevel(level); ++level) {
+        // stuff
+    }
+
+    return Math.max(level - 1, 0)
 }

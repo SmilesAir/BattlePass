@@ -9,9 +9,10 @@ let urls = {
     GET_CURRENT_EVENT_INFO: "{path}/getCurrentEventInfo",
     SET_CURRENT_MATCH: "{path}/setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}",
     UPDATE_MATCH_SCORE: "{path}/updateMatchScore/{eventName}/bracket/{bracketName}/matchId/{matchId}",
+    GET_CURRENT_EVENT_LEADERBOARD: "{path}/getCurrentEventLeaderboard/{eventName}",
     GET_USER_DATA: "{path}/getUserData",
     UPDATE_PICK: "{path}/updatePick/{eventName}/bracket/{bracketName}/matchId/{matchId}/wager/{wager}",
-    COLLECT_REWARDS: "{path}/collectRewards/{eventName}",
+    COLLECT_REWARDS: "{path}/collectRewards/{eventName}/displayName/{displayName}",
     REDEEM_CODE: "{path}/redeemCode/{code}",
     SETUP_CREATE_CODE: "{path}/setupCreateCode/{eventName}/code/{code}",
     SEND_CHEER: "{path}/sendCheer/{eventName}/displayName/{displayName}/playerIndex/{playerIndex}/type/{type}"
