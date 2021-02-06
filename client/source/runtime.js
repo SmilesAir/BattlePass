@@ -93,15 +93,15 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
             if (reacketMatch !== undefined) {
                 return (
                     <div>
-                        <h2>{MainStore.currentMatchId}</h2>
+                        <h2>{Common.getReacketIdFromString(MainStore.currentMatchId, MainStore.roundCount)}</h2>
                         <div>{reacketMatch.players[0].name}</div>
-                        <button onClick={() => this.onRuntimePoint(0, 1)}>+</button>
-                        <button onClick={() => this.onRuntimePoint(0, -1)} disabled={!this.isScoreAboveZero(0)}>-</button>
+                        <button className="scoreButton" onClick={() => this.onRuntimePoint(0, 1)}>+</button>
+                        <button className="scoreButton" onClick={() => this.onRuntimePoint(0, -1)} disabled={!this.isScoreAboveZero(0)}>-</button>
                         <div>{reacketMatch.players[1].name}</div>
-                        <button onClick={() => this.onRuntimePoint(1, 1)}>+</button>
-                        <button onClick={() => this.onRuntimePoint(1, -1)} disabled={!this.isScoreAboveZero(1)}>-</button>
+                        <button className="scoreButton" onClick={() => this.onRuntimePoint(1, 1)}>+</button>
+                        <button className="scoreButton" onClick={() => this.onRuntimePoint(1, -1)} disabled={!this.isScoreAboveZero(1)}>-</button>
                         <div>Finalize</div>
-                        <button onClick={() => this.onFinalUpdate(!this.isCurrentMatchFinal())}>{ this.isCurrentMatchFinal() ? "Unfinalize Match" : "Finalize Match" }</button>
+                        <button className="finalizeButton" onClick={() => this.onFinalUpdate(!this.isCurrentMatchFinal())}>{ this.isCurrentMatchFinal() ? "Unfinalize Match" : "Finalize Match" }</button>
                     </div>
                 )
             }

@@ -51,7 +51,21 @@ module.exports.getCurrentMatch = function() {
     return undefined
 }
 
-function getReacketId(id, roundCount, matches) {
+module.exports.getReacketIdFromString = function(idString, roundCount) {
+    let parts = idString.split(".")
+
+    if (parts.length !== 3) {
+        return idString
+    }
+
+    return module.exports.getReacketId({
+        s: parseInt(parts[0], 10),
+        r: parseInt(parts[1], 10),
+        m: parseInt(parts[2], 10)
+    }, roundCount)
+}
+
+module.exports.getReacketId = function(id, roundCount) {
     if (id.s === 2) {
         return "CF"
     } else if (id.r === roundCount) {
@@ -60,7 +74,7 @@ function getReacketId(id, roundCount, matches) {
 
     let topNum = Math.pow(2, roundCount - id.r + 1)
     let matchNum = 1
-    for (let match of matches) {
+    for (let match of MainStore.duel.matches) {
         if (match.id.s === id.s && match.id.r === id.r) {
             let isSpacer = match.p.find((playerIndex) => {
                 return playerIndex === -1
@@ -99,9 +113,9 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
         }
     }
 
-    let roundCount = 0
+    MainStore.roundCount = 0
     for (let match of MainStore.duel.matches) {
-        roundCount = Math.max(match.id.r, roundCount)
+        MainStore.roundCount = Math.max(match.id.r, MainStore.roundCount)
     }
 
     MainStore.reacketMatches.splice(0, MainStore.reacketMatches.length)
@@ -141,7 +155,7 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
             ],
             isFinal: result.isFinal,
             isCurrent: MainStore.currentMatchId === id,
-            label: getReacketId(match.id, roundCount, MainStore.duel.matches)
+            label: module.exports.getReacketId(match.id, MainStore.roundCount)
         }
 
         for (let player of match.p) {
@@ -367,7 +381,11 @@ module.exports.idToPrettyName = function(id) {
         return "Final"
     }
 
-    return `${roundNames[MainStore.duel.p - parts[1]]} ${parts[2]}`
+    let reacketLabel = module.exports.getReacketIdFromString(id, MainStore.roundCount)
+    let reacketLabelMatchNum = reacketLabel.split(".")[1]
+    let matchNum = reacketLabelMatchNum !== undefined ? reacketLabelMatchNum : parts[2]
+
+    return `${roundNames[MainStore.duel.p - parts[1]]} ${matchNum}`
 }
 
 module.exports.getXpForLevel = function(level) {

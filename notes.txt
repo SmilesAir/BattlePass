@@ -17,7 +17,7 @@ Instant replay
 
 
 player highlights green when 100% pick rate
-Nan on cheers after new account
 
-match name in Runtime
+
+Stats- catch or drop
 frontend ui for bracket lock
