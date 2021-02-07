@@ -94,10 +94,10 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
                 return (
                     <div>
                         <h2>{Common.getReacketIdFromString(MainStore.currentMatchId, MainStore.roundCount)}</h2>
-                        <div>{reacketMatch.players[0].name}: {reacketMatch.score[0]}</div>
+                        <div>#{reacketMatch.players[0].seed} {reacketMatch.players[0].name}: {reacketMatch.score[0]}</div>
                         <button className="scoreButton" onClick={() => this.onRuntimePoint(0, 1)}>+</button>
                         <button className="scoreButton" onClick={() => this.onRuntimePoint(0, -1)} disabled={!this.isScoreAboveZero(0)}>-</button>
-                        <div>{reacketMatch.players[1].name}: {reacketMatch.score[1]}</div>
+                        <div>#{reacketMatch.players[1].seed} {reacketMatch.players[1].name}: {reacketMatch.score[1]}</div>
                         <button className="scoreButton" onClick={() => this.onRuntimePoint(1, 1)}>+</button>
                         <button className="scoreButton" onClick={() => this.onRuntimePoint(1, -1)} disabled={!this.isScoreAboveZero(1)}>-</button>
                         <div>Finalize</div>
