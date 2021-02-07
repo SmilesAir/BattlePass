@@ -25,6 +25,14 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
             this.update()
         })
 
+        setInterval(() => {
+            Common.updateEventInfoFromAws().then(() => {
+                this.forceUpdate()
+
+                this.update()
+            })
+        }, 15000)
+
         this.state = {
             pickMatchId: undefined,
             pickMatchPlayers: undefined,
