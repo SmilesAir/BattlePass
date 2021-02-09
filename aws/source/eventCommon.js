@@ -71,7 +71,7 @@ module.exports.setupNewBracket = (e, c, cb) => { Common.handler(e, c, cb, async 
         return response.Item
     }).catch()
 
-    if (eventData.brackets !== undefined && eventData.brackets[bracketName].isLocked === true) {
+    if (eventData.brackets !== undefined && eventData.brackets[bracketName] && eventData.brackets[bracketName].isLocked === true) {
         return {
             success: false,
             message: "Bracket is locked!"

@@ -25,5 +25,7 @@ module.exports = Mobx.observable({
     rewards: undefined,
     eventDataUpdatedCallbacks: [],
     cheerGifs: cheerGifs,
-    roundCount: 0
+    roundCount: 0,
+    currentBracket: undefined,
+    overrideBracket: undefined
 })

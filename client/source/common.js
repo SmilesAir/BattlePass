@@ -7,17 +7,25 @@ const { fetchEx, fetchAuth } = require("./endpoints.js")
 const Common = require("./common.js")
 
 function fillNewMatchResults(duel) {
-    if (MainStore.currentBracket === undefined) {
+    if (module.exports.getViewingBracketName() === undefined) {
         console.error("No Bracket set")
         return
     }
 
-    MainStore.brackets[MainStore.currentBracket].results = {}
+    MainStore.brackets[module.exports.getViewingBracketName()].results = {}
 
     for (let match of duel.matches) {
         let result = new MatchResult(match.id.s, match.id.r, match.id.m, 0, 0, false)
-        MainStore.brackets[MainStore.currentBracket].results[result.dynamodId] = result
+        MainStore.brackets[module.exports.getViewingBracketName()].results[result.dynamodId] = result
     }
+}
+
+module.exports.getViewingBracketName = function() {
+    return MainStore.overrideBracket || MainStore.currentBracket
+}
+
+module.exports.rebuildBracket = function() {
+    module.exports.updateBracketFromNames(MainStore.brackets[module.exports.getViewingBracketName()].names)
 }
 
 module.exports.updateBracketFromNamesString = function(namesString, createNewBracket) {
@@ -30,7 +38,7 @@ module.exports.getMatchResults = function() {
 }
 
 module.exports.getCurrentBracket = function() {
-    return MainStore.brackets && MainStore.brackets[MainStore.currentBracket]
+    return MainStore.brackets && MainStore.brackets[Common.getViewingBracketName()]
 }
 
 module.exports.getCurrentMatch = function() {
@@ -186,7 +194,7 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
 }
 
 module.exports.updateScores = function() {
-    let matchResults = MainStore.brackets[MainStore.currentBracket].results
+    let matchResults = MainStore.brackets[module.exports.getViewingBracketName()].results
     for (let resultId in matchResults) {
         let result = matchResults[resultId]
         if (result.isFinal) {
@@ -247,7 +255,7 @@ module.exports.updateEventInfoFromAws = function(getCheers) {
             }
 
             if (currentBracket !== undefined) {
-                module.exports.updateBracketFromNames(MainStore.brackets[MainStore.currentBracket].names)
+                Common.rebuildBracket()
             }
         } else {
             console.log("No events")

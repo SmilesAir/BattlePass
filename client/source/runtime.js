@@ -7,6 +7,7 @@ const MainStore = require("./mainStore.js")
 const EventInfo = require("./eventInfo.js")
 const Common = require("./common.js")
 const { fetchEx } = require("./endpoints.js")
+const BracketSelect = require("./bracketSelect.js")
 
 require("./runtime.less")
 

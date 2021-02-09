@@ -10,6 +10,7 @@ const { fetchAuth } = require("./endpoints.js")
 const Common = require("./common.js")
 const Welcome = require("./welcome.js")
 const Rewards = require("./rewards.js")
+const BracketSelect = require("./bracketSelect.js")
 
 require("./basic.less")
 
@@ -260,6 +261,8 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
                 </div>
                 <EventInfo />
                 {this.getCollectRewardsElement()}
+                <br />
+                <BracketSelect />
                 <MainStore.Reacket matches={MainStore.reacketMatches} showExpandElement={true} getExpandElement={(id, players) => this.getExpandElement(id, players)} />
                 {/* {this.getCheerElement()} */}
             </div>
