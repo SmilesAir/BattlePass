@@ -102,6 +102,13 @@ functions:
           path: setupSetCurrentBracket/{eventName}/bracket/{bracketName}
           method: post
           cors: true
+  setupSetCurrentBracketLocked:
+    handler: source/eventCommon.setupSetCurrentBracketLocked
+    events:
+      - http:
+          path: setupSetCurrentBracketLocked/{eventName}/bracket/{bracketName}/isLocked/{isLocked}
+          method: post
+          cors: true
   setupGetEvents:
     handler: source/eventCommon.setupGetEvents
     events:

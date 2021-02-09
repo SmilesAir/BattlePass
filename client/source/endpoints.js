@@ -4,6 +4,7 @@ let urls = {
     SETUP_NEW_BRACKET: "{path}/setupNewBracket/{eventName}/bracket/{bracketName}",
     SETUP_SET_CURRENT_EVENT: "{path}/setupSetCurrentEvent/{eventName}",
     SETUP_SET_CURRENT_BRACKET: "{path}/setupSetCurrentBracket/{eventName}/bracket/{bracketName}",
+    SETUP_SET_CURRENT_BRACKET_LOCKED: "{path}/setupSetCurrentBracketLocked/{eventName}/bracket/{bracketName}/isLocked/{isLocked}",
     SETUP_GET_EVENTS: "{path}/setupGetEvents",
     SETUP_GET_EVENT: "{path}/setupGetEvent/{eventName}",
     GET_CURRENT_EVENT_INFO: "{path}/getCurrentEventInfo",

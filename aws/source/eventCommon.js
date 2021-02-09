@@ -136,14 +136,33 @@ module.exports.setupSetCurrentBracket = (e, c, cb) => { Common.handler(e, c, cb,
     let eventName = decodeURIComponent(event.pathParameters.eventName)
     let bracketName = decodeURIComponent(event.pathParameters.bracketName)
 
-    console.log(event.pathParameters)
-
     let updateParams = {
         TableName: process.env.EVENT_TABLE,
         Key: {"key": eventName},
         UpdateExpression: "set currentBracket = :bracketName",
         ExpressionAttributeValues: {
             ":bracketName": bracketName
+        },
+        ReturnValues: "NONE"
+    }
+    await docClient.update(updateParams).promise().catch((error) => {
+        throw error
+    })
+})}
+module.exports.setupSetCurrentBracketLocked = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let bracketName = decodeURIComponent(event.pathParameters.bracketName)
+    let isLocked = decodeURIComponent(event.pathParameters.isLocked) === "true"
+
+    let updateParams = {
+        TableName: process.env.EVENT_TABLE,
+        Key: {"key": eventName},
+        UpdateExpression: "set brackets.#bracketName.isLocked = :isLocked",
+        ExpressionAttributeNames: {
+            "#bracketName": bracketName
+        },
+        ExpressionAttributeValues: {
+            ":isLocked": isLocked
         },
         ReturnValues: "NONE"
     }
@@ -203,8 +222,6 @@ module.exports.getCurrentEventInfo = (e, c, cb) => { Common.handler(e, c, cb, as
     }
     return docClient.get(getParams).promise().then((response) => {
         if (Common.isEmptyObject(response)) {
-            console.log("No events")
-
             return {
                 success: true,
                 constants: masterInfo.constants
@@ -229,10 +246,7 @@ module.exports.getMasterInfo = function() {
         Key: {"key": "masterInfo"}
     }
 
-    console.log(getParams)
-
     return docClient.get(getParams).promise().then((response) => {
-        console.log(response)
         if (Common.isEmptyObject(response)) {
             throw "missing masterInfo"
         }
@@ -297,16 +311,6 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
     let matchId = decodeURIComponent(event.pathParameters.matchId)
     let request = JSON.parse(event.body) || {}
 
-    // let sns = new AWS.SNS()
-    // let snsParams = {
-    //     Message: "Does this work?",
-    //     Subject: "test subject",
-    //     TopicArn: process.env.SNS_TOPIC_ARN
-    // }
-    // await sns.publish(snsParams).promise().catch((error) => {
-    //     console.log("sns error", error)
-    // })
-
     if (request.isFinal !== undefined) {
         let params = {
             TableName: process.env.EVENT_TABLE,
@@ -322,7 +326,6 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
             ReturnValues: "NONE"
         }
         return docClient.update(params).promise().then((resp) => {
-            console.log("response", JSON.stringify(resp))
             return {
                 success: true
             }

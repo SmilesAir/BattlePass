@@ -30,10 +30,12 @@ module.exports = @MobxReact.observer class BracketSelect extends React.Component
     render() {
         let bracketButtons = []
         for (let bracket in MainStore.brackets) {
-            let className = `bracketButton ${Common.getViewingBracketName() === bracket ? "selected" : ""}`
-            bracketButtons.push(
-                <button key={bracket} className={className} onClick={() => this.selectClicked(bracket)}>{bracket}</button>
-            )
+            if (MainStore.brackets[bracket].isLocked === true) {
+                let className = `bracketButton ${Common.getViewingBracketName() === bracket ? "selected" : ""}`
+                bracketButtons.push(
+                    <button key={bracket} className={className} onClick={() => this.selectClicked(bracket)}>{bracket}</button>
+                )
+            }
         }
         return (
             <div className="bracketSelectContainer">

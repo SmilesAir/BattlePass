@@ -23,7 +23,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         }
     }
 
-    componentDidMount() {
+    initSetupData() {
         fetchEx("SETUP_GET_EVENTS", undefined, undefined, {
             method: "GET",
             headers: {
@@ -42,6 +42,10 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
                 }
             }
         })
+    }
+
+    componentDidMount() {
+        this.initSetupData()
     }
 
     fetchAndFillEventData(eventName) {
@@ -337,7 +341,23 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         })
     }
 
+    setBracketLock(isLocked) {
+        fetchEx("SETUP_SET_CURRENT_BRACKET_LOCKED", { eventName: this.state.eventName, bracketName: this.state.bracketName, isLocked: isLocked }, undefined, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then(() => {
+            this.initSetupData()
+        })
+    }
+
     render() {
+        let currentBracket = Common.getCurrentBracket()
+        let isCurrentBracketLocked = false
+        if (currentBracket !== undefined) {
+            isCurrentBracketLocked = currentBracket.isLocked
+        }
         return (
             <div>
                 <h1>
@@ -354,6 +374,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
                 <button onClick={() => this.onCreateNewBracket()} disabled={this.isBracketInvalid()}>Upload Bracket</button>
                 <button onClick={() => this.setCreatingNewBracket()}>Create New Bracket</button>
                 <button onClick={() => this.setCurrentBracket()} disabled={this.isBracketInvalid()}>Set as Current Bracket</button>
+                <button onClick={() => this.setBracketLock(!isCurrentBracketLocked)} disabled={this.isBracketInvalid()}>{isCurrentBracketLocked ? "Unlock Bracket" : "Lock Bracket"}</button>
                 <div>
                     <div>Enter player names (1 per line)</div>
                     <textarea onChange={(event) => this.onNamesChanged(event)} value={this.state.namesText} />

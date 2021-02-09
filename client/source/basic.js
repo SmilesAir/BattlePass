@@ -20,20 +20,6 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
 
         this.nextCheerString = ""
 
-        Common.updateEventInfoFromAws().then(() => {
-            this.forceUpdate()
-
-            this.update()
-        })
-
-        setInterval(() => {
-            Common.updateEventInfoFromAws().then(() => {
-                this.forceUpdate()
-
-                this.update()
-            })
-        }, 15000)
-
         this.state = {
             pickMatchId: undefined,
             pickMatchPlayers: undefined,
@@ -41,6 +27,26 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
             showCheerPicker: false,
             cheerPlayerIndex: undefined
         }
+    }
+
+    componentDidMount() {
+        Common.updateEventInfoFromAws().then(() => {
+            this.forceUpdate()
+
+            this.update()
+        })
+
+        this.updateIntervalHandle = setInterval(() => {
+            Common.updateEventInfoFromAws().then(() => {
+                this.forceUpdate()
+
+                this.update()
+            })
+        }, 15000)
+    }
+
+    componentWillUnmount() {
+        clearInterval(this.updateIntervalHandle)
     }
 
     getExpandElement(id, players) {
