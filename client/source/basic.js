@@ -30,19 +30,19 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
     }
 
     componentDidMount() {
+        this.updateFromAws()
+
+        this.updateIntervalHandle = setInterval(() => {
+            this.updateFromAws()
+        }, 10000)
+    }
+
+    updateFromAws() {
         Common.updateEventInfoFromAws().then(() => {
             this.forceUpdate()
 
             this.update()
         })
-
-        this.updateIntervalHandle = setInterval(() => {
-            Common.updateEventInfoFromAws().then(() => {
-                this.forceUpdate()
-
-                this.update()
-            })
-        }, 15000)
     }
 
     componentWillUnmount() {
@@ -69,7 +69,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
     onSetMatch(id, players) {
         this.state.pickMatchId = id
         this.state.pickMatchPlayers = players
-        let pickData = MainStore.userData[MainStore.eventName].picks[`${MainStore.currentBracket}_${Common.reacketIdToDynamoId(id)}`]
+        let pickData = MainStore.userData[MainStore.eventName].picks[`${Common.getViewingBracketName()}_${Common.reacketIdToDynamoId(id)}`]
         if (pickData === undefined) {
             this.state.pickIndex = undefined
         } else {
@@ -83,7 +83,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
         let matchId = this.state.pickMatchId
 
         MainStore.Auth.currentAuthenticatedUser().then((data) => {
-            fetchAuth("UPDATE_PICK", { eventName: MainStore.eventName, bracketName: MainStore.currentBracket, matchId: Common.reacketIdToDynamoId(matchId), wager: wager }, undefined, {
+            fetchAuth("UPDATE_PICK", { eventName: MainStore.eventName, bracketName: Common.getViewingBracketName(), matchId: Common.reacketIdToDynamoId(matchId), wager: wager }, undefined, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -95,12 +95,14 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
                 if (response.isNotPickable) {
                     alert("Match has already been locked. No Bet placed.")
                 }
+
+                this.updateFromAws()
             }).catch((error) => {
                 console.error("Failed to update match", error)
             })
         })
 
-        MainStore.userData[MainStore.eventName].picks[`${MainStore.currentBracket}_${Common.reacketIdToDynamoId(this.state.pickMatchId)}`] = wager
+        MainStore.userData[MainStore.eventName].picks[`${Common.getViewingBracketName()}_${Common.reacketIdToDynamoId(this.state.pickMatchId)}`] = wager
 
         this.state.pickIndex = undefined
         this.state.pickMatchId = undefined
