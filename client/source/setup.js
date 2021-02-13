@@ -352,6 +352,29 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         })
     }
 
+    updatePlayerRatings() {
+        fetchEx("UPDATE_PLAYER_RATINGS", { eventName: MainStore.eventName }, undefined, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then((response) => {
+            if (response.status >= 400) {
+                throw response.message
+            } else {
+                return response.json()
+            }
+        }).then((response) => {
+            if (response.success === true) {
+                alert("Ratings Updated Successfully")
+            } else {
+                alert(`Failed to update ratings!\n${response.message}`)
+            }
+        }).catch((error) => {
+            alert(`Failed to update ratings!\n${error}`)
+        })
+    }
+
     render() {
         let currentBracket = Common.getCurrentBracket()
         let isCurrentBracketLocked = false
@@ -366,6 +389,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
                 {this.state.isCreatingNewEvent ? this.getNewEventElement() : this.getEventsDropDown()}
                 <button onClick={() => this.setCreatingNewEvent()}>Create New Event</button>
                 <button onClick={() => this.setCurrentEvent()} disabled={this.isEventInvalid()}>Set as Current Event</button>
+                <button onClick={() => this.updatePlayerRatings()} disabled={this.isEventInvalid()}>Update Player Ratings</button>
                 <div>
                     <button onClick={() => this.createCode()}>Create Premium Code</button>
                     <label>Code: {this.state.code}</label>

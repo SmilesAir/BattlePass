@@ -16,6 +16,7 @@ const Basic = require("./basic.js")
 const Runtime = require("./runtime.js")
 const Overlay = require("./overlay.js")
 const Leaderboard = require("./leaderboard.js")
+const EloEditor = require("./eloEditor.js")
 const Common = require("./common.js")
 
 require("./index.less")
@@ -173,6 +174,8 @@ MainStore.AmplifySignOut = AmplifySignOut
                 return <Overlay />
             case "leaderboard":
                 return <Leaderboard />
+            case "eloEditor":
+                return <EloEditor />
             default:
                 return (
                     <div>

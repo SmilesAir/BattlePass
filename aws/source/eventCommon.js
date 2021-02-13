@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk')
+const uuid = require('uuid')
 let docClient = new AWS.DynamoDB.DocumentClient()
 
 const Common = require("./common.js")
@@ -15,7 +16,7 @@ module.exports.setupNewEvent = (e, c, cb) => { Common.handler(e, c, cb, async (e
             if (response.Item.locked !== true) {
                 return createNewEvent(eventName)
             } else {
-                throw new "Trying to overwrite locked event"
+                throw "Trying to overwrite locked event"
             }
         } else {
             return createNewEvent(eventName)
@@ -280,16 +281,29 @@ module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async 
     let eventName = decodeURIComponent(event.pathParameters.eventName)
     let bracketName = decodeURIComponent(event.pathParameters.bracketName)
     let matchId = decodeURIComponent(event.pathParameters.matchId)
+    let player1Id = decodeURIComponent(event.pathParameters.player1Id)
+    let player2Id = decodeURIComponent(event.pathParameters.player2Id)
+
+    // Create a new match for player ratings
+    let ratingMatchId = "undefined"
+    if (player1Id !== "undefined" && player2Id !== "undefined") {
+        ratingMatchId = await addRatedMatch(player1Id, player2Id, {
+            eventName: eventName,
+            bracketName: bracketName
+        })
+    }
 
     let params = {
         TableName: process.env.EVENT_TABLE,
         Key: {"key": eventName},
-        UpdateExpression: "set brackets.#bracketName.currentMatchId = :id",
+        UpdateExpression: "set brackets.#bracketName.currentMatchId = :id, brackets.#bracketName.results.#matchId.ratingMatchId = :ratingMatchId",
         ExpressionAttributeNames: {
-            "#bracketName": bracketName
+            "#bracketName": bracketName,
+            "#matchId": matchId
         },
         ExpressionAttributeValues: {
-            ":id": matchId
+            ":id": matchId,
+            ":ratingMatchId": ratingMatchId || "undefined"
         },
         ReturnValues: "NONE"
     }
@@ -309,9 +323,14 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
     let eventName = decodeURIComponent(event.pathParameters.eventName)
     let bracketName = decodeURIComponent(event.pathParameters.bracketName)
     let matchId = decodeURIComponent(event.pathParameters.matchId)
+    let player1Id = decodeURIComponent(event.pathParameters.player1Id)
+    let player2Id = decodeURIComponent(event.pathParameters.player2Id)
+    let ratingMatchId = decodeURIComponent(event.pathParameters.ratingMatchId)
     let request = JSON.parse(event.body) || {}
 
     if (request.isFinal !== undefined) {
+        await updatePlayerRatings(eventName)
+
         let params = {
             TableName: process.env.EVENT_TABLE,
             Key: {"key": eventName},
@@ -337,17 +356,36 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
             }
         })
     } else {
+        if (request.pointDelta > 0) {
+            // Create a new match for player ratings
+            if (player1Id !== "undefined" && player2Id !== "undefined" && ratingMatchId !== "undefined") {
+                await addRatedBattle(player1Id, player2Id, request.playerIndex === 0 ? -1 : 1, ratingMatchId)
+            }
+        }
+
+        let getParams = {
+            TableName: process.env.MATCH_TABLE,
+            Key: {"key": ratingMatchId}
+        }
+
+        let ratingMatch = await docClient.get(getParams).promise().then((response) => {
+            return response && response.Item
+        }).catch((error) => {
+            console.log(error)
+        })
+
         let params = {
             TableName: process.env.EVENT_TABLE,
             Key: {"key": eventName},
-            UpdateExpression: `set brackets.#bracketName.results.#matchId.score[${request.playerIndex}] = brackets.#bracketName.results.#matchId.score[${request.playerIndex}] + :pointDelta, brackets.#bracketName.results.#matchId.isPickable = :false`,
+            UpdateExpression: `set brackets.#bracketName.results.#matchId.score[${request.playerIndex}] = brackets.#bracketName.results.#matchId.score[${request.playerIndex}] + :pointDelta, brackets.#bracketName.results.#matchId.isPickable = :false, brackets.#bracketName.results.#matchId.ratingMatchData = :ratingMatchData`,
             ExpressionAttributeNames: {
                 "#bracketName": bracketName,
                 "#matchId": matchId
             },
             ExpressionAttributeValues: {
                 ":pointDelta": request.pointDelta,
-                ":false": false
+                ":false": false,
+                ":ratingMatchData": ratingMatch && ratingMatch.players || []
             },
             ReturnValues: "NONE"
         }
@@ -378,7 +416,7 @@ module.exports.getCurrentEventLeaderboard = (e, c, cb) => { Common.handler(e, c,
     let playerData = []
     let onScan = async (err, data) => {
         if (err) {
-            throw new "Error scaning player points for leaderboard. " + err
+            throw "Error scaning player points for leaderboard. " + err
         } else {
             playerData = playerData.concat(data.Items.map((item) => {
                 return {
@@ -405,3 +443,328 @@ module.exports.getCurrentEventLeaderboard = (e, c, cb) => { Common.handler(e, c,
         leaderboardData: playerData
     }
 })}
+
+module.exports.getPlayers = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let players = await getPlayers()
+
+    return {
+        success: true,
+        players: players
+    }
+})}
+
+module.exports.addNewPlayer = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let alias = decodeURIComponent(event.pathParameters.alias)
+
+    let playerId = addNewPlayer(alias)
+
+    return {
+        success: true,
+        playerId: playerId
+    }
+})}
+
+module.exports.addNewPlayerAlias = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let playerId = decodeURIComponent(event.pathParameters.playerId)
+    let alias = decodeURIComponent(event.pathParameters.alias)
+
+    addNewPlayerAlias(playerId, alias)
+
+    return {
+        success: true
+    }
+})}
+
+module.exports.addRatedMatch = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let player1Id = decodeURIComponent(event.pathParameters.player1Id)
+    let player2Id = decodeURIComponent(event.pathParameters.player2Id)
+    let info = JSON.parse(event.body) || {}
+
+    let matchId = await addRatedMatch(player1Id, player2Id, info)
+
+    return {
+        success: true,
+        matchId: matchId
+    }
+})}
+
+module.exports.addRatedBattle = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let player1Id = decodeURIComponent(event.pathParameters.player1Id)
+    let player2Id = decodeURIComponent(event.pathParameters.player2Id)
+    let result = parseInt(decodeURIComponent(event.pathParameters.result))
+    let matchId = decodeURIComponent(event.pathParameters.matchId)
+
+    await addRatedBattle(player1Id, player2Id, result, matchId)
+
+    return {
+        success: true,
+    }
+})}
+
+module.exports.updatePlayerRatings = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    await updatePlayerRatings(eventName)
+
+    return {
+        success: true
+    }
+})}
+
+function insertRatedMatch(player1Id, player2Id, result, time) {
+
+}
+
+async function addRatedMatch(player1Id, player2Id, info) {
+    let player1Data = await getPlayerData(player1Id)
+    let player2Data = await getPlayerData(player2Id)
+
+    let now = Date.now()
+    let matchId = uuid.v1()
+    let putParams = {
+        TableName : process.env.MATCH_TABLE,
+        Item: {
+            key: matchId,
+            createdAt: now,
+            playedAt: now,
+            info: info,
+            battles: [],
+            players: [
+                {
+                    playerId: player1Id,
+                    oldRating: player1Data.rating,
+                    newRating: player1Data.rating
+                },
+                {
+                    playerId: player2Id,
+                    oldRating: player2Data.rating,
+                    newRating: player2Data.rating
+                }
+            ]
+        }
+    }
+    await docClient.put(putParams).promise().catch((error) => {
+        throw error
+    })
+
+    return matchId
+}
+
+async function addRatedBattle(player1Id, player2Id, result, matchId) {
+    let player1Data = await getPlayerData(player1Id)
+    let player2Data = await getPlayerData(player2Id)
+
+    // -1 means player1 won, 1 means player2 won, 0 means draw
+    let r1 = Math.pow(10, player1Data.rating / 400)
+    let r2 = Math.pow(10, player2Data.rating / 400)
+    let e1 = r1 / (r1 + r2)
+    let e2 = r2 / (r1 + r2)
+    let s1 = result === 0 ? .5 : (result > 0 ? 0 : 1)
+    let s2 = result === 0 ? .5 : (result > 0 ? 1 : 0)
+    let k = 32
+    let newR1 = player1Data.rating + k * (s1 - e1)
+    let newR2 = player2Data.rating + k * (s2 - e2)
+
+    let now = Date.now()
+    let battleId = uuid.v1();
+    let putParams = {
+        TableName : process.env.BATTLE_TABLE,
+        Item: {
+            key: battleId,
+            result: result,
+            players: [
+                {
+                    playerId: player1Id,
+                    oldRating: player1Data.rating,
+                    newRating: newR1
+                },
+                {
+                    playerId: player2Id,
+                    oldRating: player2Data.rating,
+                    newRating: newR2
+                }
+            ],
+            createdAt: now,
+            playedAt: now,
+            matchId: matchId
+        }
+    }
+
+    await docClient.put(putParams).promise().catch((error) => {
+        throw error
+    })
+
+    let matchUpdateParams = {
+        TableName : process.env.MATCH_TABLE,
+        Key: {"key": matchId},
+        ReturnValues: "NONE",
+        UpdateExpression: "set players[0].newRating = :newR1, players[1].newRating = :newR2, battles = list_append(battles, :newBattle)",
+        ExpressionAttributeValues: {
+            ":newR1": newR1,
+            ":newR2": newR2,
+            ":newBattle": [battleId]
+        }
+    }
+    await docClient.update(matchUpdateParams).promise().catch((error) => {
+        throw error
+    })
+
+    await updatePlayerBattle(player1Id, battleId, newR1)
+    await updatePlayerBattle(player2Id, battleId, newR2)
+}
+
+async function updatePlayerBattle(playerId, battleId, newRating) {
+    let updateParams = {
+        TableName : process.env.PLAYER_TABLE,
+        Key: {"key": playerId},
+        ReturnValues: "NONE",
+        UpdateExpression: "set battles = list_append(battles, :battleId), rating = :rating",
+        ExpressionAttributeValues: {
+            ":rating": newRating,
+            ":battleId": [battleId]
+        }
+    }
+    await docClient.update(updateParams).promise().catch((error) => {
+        throw error
+    })
+}
+
+async function getPlayerData(playerId) {
+    let getParams = {
+        TableName: process.env.PLAYER_TABLE,
+        Key: {"key": playerId}
+    }
+
+    return await docClient.get(getParams).promise().then((response) => {
+        return response && response.Item
+    }).catch((error) => {
+        throw error
+    })
+}
+
+async function addNewPlayer(alias) {
+    let playerId = uuid.v1()
+    let putParams = {
+        TableName : process.env.PLAYER_TABLE,
+        Item: {
+            key: playerId,
+            aliases: [],
+            rating: 400,
+            battles: [],
+            createdAt: Date.now()
+        }
+    }
+
+    await docClient.put(putParams).promise().catch((error) => {
+        console.error(error)
+    })
+
+    addNewPlayerAlias(playerId, alias)
+
+    return playerId
+}
+
+async function addNewPlayerAlias(playerId, alias) {
+    let putParams = {
+        TableName : process.env.PLAYER_ALIAS_TABLE,
+        Item: {
+            key: alias,
+            playerId: playerId,
+            createdAt: Date.now()
+        }
+    }
+
+    await docClient.put(putParams).promise().catch((error) => {
+        throw error
+    })
+
+    let updateParams = {
+        TableName : process.env.PLAYER_TABLE,
+        Key: {"key": playerId},
+        ReturnValues: "NONE",
+        UpdateExpression: "set aliases = list_append(aliases, :newAlias)",
+        ExpressionAttributeValues: {
+            ":newAlias": [alias]
+        }
+    }
+    await docClient.update(updateParams).promise().catch((error) => {
+        throw error
+    })
+}
+
+async function getPlayers() {
+    let players = []
+    let onScan = async (err, data) => {
+        if (err) {
+            throw "Error scaning players. " + err
+        } else {
+            players = players.concat(data.Items.map((item) => {
+                return {
+                    playerId: item.key,
+                    aliases: item.aliases,
+                    rating: item.rating
+                }
+            }))
+
+            if (data.LastEvaluatedKey !== undefined) {
+                params.ExclusiveStartKey = data.LastEvaluatedKey
+                await docClient.scan(params, onScan).promise()
+            }
+        }
+    }
+
+    let params = {
+        TableName: process.env.PLAYER_TABLE,
+        ProjectionExpression: "#key, aliases, rating",
+        ExpressionAttributeNames: {
+            "#key": "key"
+        }
+    }
+    await docClient.scan(params, onScan).promise()
+
+    return players
+}
+
+function findPlayerByAlias(players, inAlias) {
+    for (let player of players) {
+        if (player.aliases.find((alias) => {
+            return alias.toLowerCase() === inAlias.toLowerCase()
+        }) !== undefined) {
+            return player
+        }
+    }
+
+    return undefined
+}
+
+async function updatePlayerRatings(eventName) {
+    let eventInfo = await module.exports.getEventInfo(eventName)
+
+    let players = await getPlayers()
+    for (let bracket in eventInfo.brackets) {
+        let ratings = []
+        for (let competitor of eventInfo.brackets[bracket].names) {
+            let player = findPlayerByAlias(players, competitor)
+            if (player !== undefined) {
+                ratings.push(player.rating)
+            } else {
+                ratings.push(0)
+            }
+        }
+
+        let updateParams = {
+            TableName : process.env.EVENT_TABLE,
+            Key: {"key": eventName},
+            ReturnValues: "NONE",
+            UpdateExpression: "set brackets.#bracketName.ratings = :ratings",
+            ExpressionAttributeNames: {
+                "#bracketName": bracket
+            },
+            ExpressionAttributeValues: {
+                ":ratings": ratings
+            }
+        }
+        await docClient.update(updateParams).promise().catch((error) => {
+            throw error
+        })
+    }
+}

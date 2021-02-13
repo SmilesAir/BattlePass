@@ -7,7 +7,6 @@ const MainStore = require("./mainStore.js")
 const EventInfo = require("./eventInfo.js")
 const Common = require("./common.js")
 const { fetchEx } = require("./endpoints.js")
-const BracketSelect = require("./bracketSelect.js")
 
 require("./runtime.less")
 
@@ -15,19 +14,61 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
     constructor() {
         super()
 
+        this.state = {}
+    }
+
+    componentDidMount() {
         Common.updateEventInfoFromAws().then(() => {
             this.forceUpdate()
         })
+
+        fetchEx("GET_PLAYERS", undefined, undefined, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then((response) => {
+            return response.json()
+        }).then((response) => {
+            if (response.success) {
+                this.state.players = response.players
+                this.setState(this.state)
+            }
+        })
+    }
+
+    getPlayerIdByAlias(inAlias) {
+        let playerData = this.state.players.find((player) => {
+            return player.aliases.find((alias) => {
+                return alias.toLowerCase() === inAlias.toLowerCase()
+            }) !== undefined
+        })
+
+        return playerData && playerData.playerId || "undefined"
     }
 
     onSetMatch(id) {
         MainStore.currentMatchId = id
 
-        fetchEx("SET_CURRENT_MATCH", { eventName: MainStore.eventName, bracketName: MainStore.currentBracket, matchId: Common.reacketIdToDynamoId(id) }, undefined, {
+        let reacketMatch = MainStore.reacketMatches.find((match) => {
+            return match.id === MainStore.currentMatchId
+        })
+
+        fetchEx("SET_CURRENT_MATCH", {
+            eventName: MainStore.eventName,
+            bracketName: MainStore.currentBracket,
+            matchId: Common.reacketIdToDynamoId(id),
+            player1Id: this.getPlayerIdByAlias(reacketMatch.players[0].name),
+            player2Id: this.getPlayerIdByAlias(reacketMatch.players[1].name)
+        }, undefined, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             }
+        }).then(() => {
+            Common.updateEventInfoFromAws().then(() => {
+                this.forceUpdate()
+            })
         }).catch((error) => {
             console.error("Failed to set current match", error)
         })
@@ -46,7 +87,24 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
 
         Common.updateScores()
 
-        fetchEx("UPDATE_MATCH_SCORE", { eventName: MainStore.eventName, bracketName: MainStore.currentBracket, matchId: Common.reacketIdToDynamoId(MainStore.currentMatchId) }, undefined, {
+        let reacketMatch = MainStore.reacketMatches.find((match) => {
+            return match.id === MainStore.currentMatchId
+        })
+
+        let currentMatch = Common.getCurrentMatch()
+        let ratingMatchId = undefined
+        if (currentMatch !== undefined) {
+            ratingMatchId = currentMatch.results.ratingMatchId
+        }
+
+        fetchEx("UPDATE_MATCH_SCORE", {
+            eventName: MainStore.eventName,
+            bracketName: MainStore.currentBracket,
+            matchId: Common.reacketIdToDynamoId(MainStore.currentMatchId),
+            player1Id: this.getPlayerIdByAlias(reacketMatch.players[0].name),
+            player2Id: this.getPlayerIdByAlias(reacketMatch.players[1].name),
+            ratingMatchId: ratingMatchId || "undefined"
+        }, undefined, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

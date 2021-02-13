@@ -25,11 +25,12 @@ module.exports.getViewingBracketName = function() {
 }
 
 module.exports.rebuildBracket = function() {
-    module.exports.updateBracketFromNames(MainStore.brackets[module.exports.getViewingBracketName()].names)
+    let bracket = MainStore.brackets[module.exports.getViewingBracketName()]
+    Common.updateBracketFromNames(bracket.names, false, bracket.ratings)
 }
 
-module.exports.updateBracketFromNamesString = function(namesString, createNewBracket) {
-    Common.updateBracketFromNames(namesString.split("\n"), createNewBracket)
+module.exports.updateBracketFromNamesString = function(namesString, createNewBracket, ratings) {
+    Common.updateBracketFromNames(namesString.split("\n"), createNewBracket, ratings)
 }
 
 module.exports.getMatchResults = function() {
@@ -96,7 +97,7 @@ module.exports.getReacketId = function(id, roundCount) {
     return `${topNum}.${matchNum}`
 }
 
-module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
+module.exports.updateBracketFromNames = function(namesArray, createNewBracket, ratings) {
     let names = namesArray.filter((name) => {
         return name !== undefined && name.length > 0
     })
@@ -166,17 +167,31 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
             label: module.exports.getReacketId(match.id, MainStore.roundCount)
         }
 
+        let loopIndex = 0
         for (let player of match.p) {
             if (player === 0) {
                 newMatch.players.push({
                     "id": 0,
                     "name": "TBD",
+                    "rating": "",
                     "seed": 0
                 })
             } else if (player !== -1) {
+                let rating = ""
+                if (ratings !== undefined && ratings.length > player - 1) {
+                    if (result.ratingMatchData !== undefined && result.ratingMatchData.length > 0) {
+                        let ratingData = result.ratingMatchData[loopIndex]
+                        let ratingDelta = Math.round(ratingData.newRating - ratingData.oldRating)
+                        let isDeltaPositive = ratingDelta > 0
+                        rating = ` ${Math.round(ratingData.newRating)} (${isDeltaPositive ? "+" : "-"}${Math.abs(ratingDelta)})`
+                    } else if (ratings[player - 1] > 0) {
+                        rating = ` ${Math.round(ratings[player - 1])}`
+                    }
+                }
                 newMatch.players.push({
                     "id": player,
                     "name": names[player - 1],
+                    "rating": rating,
                     "seed": player
                 })
             } else {
@@ -184,9 +199,12 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket) {
                 newMatch.players.push({
                     "id": 0,
                     "name": "Spacer",
+                    "rating": "",
                     "seed": 0
                 })
             }
+
+            ++loopIndex
         }
 
         MainStore.reacketMatches.push(newMatch)

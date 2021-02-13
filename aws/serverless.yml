@@ -11,6 +11,10 @@ provider:
     EVENT_TABLE: ${self:service}-${self:provider.stage}-eventTable
     USER_TABLE: ${self:service}-${self:provider.stage}-userTable
     USER_LIST_TABLE: ${self:service}-${self:provider.stage}-userListTable
+    PLAYER_TABLE: ${self:service}-${self:provider.stage}-playerTable
+    PLAYER_ALIAS_TABLE: ${self:service}-${self:provider.stage}-playerAliasTable
+    BATTLE_TABLE: ${self:service}-${self:provider.stage}-battleTable
+    MATCH_TABLE: ${self:service}-${self:provider.stage}-matchTable
     CODE_TABLE: ${self:service}-${self:provider.stage}-codeTable
     DOMAIN_SUFFIX: smilesair-gitis
     SNS_TOPIC: ${self:service}-${self:provider.stage}-topic
@@ -60,6 +64,38 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USER_LIST_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.PLAYER_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.PLAYER_ALIAS_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.BATTLE_TABLE}"
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.MATCH_TABLE}"
     - Effect: Allow
       Action:
         - dynamodb:GetItem
@@ -134,14 +170,14 @@ functions:
     handler: source/eventCommon.setCurrentMatch
     events:
       - http:
-          path: setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}
+          path: setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}
           method: post
           cors: true
   updateMatchScore:
     handler: source/eventCommon.updateMatchScore
     events:
       - http:
-          path: updateMatchScore/{eventName}/bracket/{bracketName}/matchId/{matchId}
+          path: updateMatchScore/{eventName}/bracket/{bracketName}/matchId/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}/ratingMatchId/{ratingMatchId}
           method: post
           cors: true
   getCurrentEventLeaderboard:
@@ -150,6 +186,48 @@ functions:
       - http:
           path: getCurrentEventLeaderboard/{eventName}
           method: get
+          cors: true
+  getPlayers:
+    handler: source/eventCommon.getPlayers
+    events:
+      - http:
+          path: getPlayers
+          method: get
+          cors: true
+  addNewPlayer:
+    handler: source/eventCommon.addNewPlayer
+    events:
+      - http:
+          path: addNewPlayer/{alias}
+          method: post
+          cors: true
+  addNewPlayerAlias:
+    handler: source/eventCommon.addNewPlayerAlias
+    events:
+      - http:
+          path: addNewPlayerAlias/{playerId}/alias/{alias}
+          method: post
+          cors: true
+  addRatedMatch:
+    handler: source/eventCommon.addRatedMatch
+    events:
+      - http:
+          path: addRatedMatch/{player1Id}/player2Id/{player2Id}
+          method: post
+          cors: true
+  addRatedBattle:
+    handler: source/eventCommon.addRatedBattle
+    events:
+      - http:
+          path: addRatedBattle/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}/result/{result}
+          method: post
+          cors: true
+  updatePlayerRatings:
+    handler: source/eventCommon.updatePlayerRatings
+    events:
+      - http:
+          path: updatePlayerRatings/{eventName}
+          method: post
           cors: true
   getUserData:
     handler: source/userCommon.getUserData
@@ -242,6 +320,58 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    playerTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.PLAYER_TABLE}
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    playerAliasTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.PLAYER_ALIAS_TABLE}
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    battleTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.BATTLE_TABLE}
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    matchTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.MATCH_TABLE}
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
     codeTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -312,6 +442,42 @@ custom:
         maximum: 100
         usage: .75
     - table: userTable
+      read:
+        minimum: 1
+        maximum: 100
+        usage: .75
+      write:
+        minimum: 1
+        maximum: 100
+        usage: .75
+    - table: playerTable
+      read:
+        minimum: 1
+        maximum: 100
+        usage: .75
+      write:
+        minimum: 1
+        maximum: 100
+        usage: .75
+    - table: playerAliasTable
+      read:
+        minimum: 1
+        maximum: 100
+        usage: .75
+      write:
+        minimum: 1
+        maximum: 100
+        usage: .75
+    - table: battleTable
+      read:
+        minimum: 1
+        maximum: 100
+        usage: .75
+      write:
+        minimum: 1
+        maximum: 100
+        usage: .75
+    - table: matchTable
       read:
         minimum: 1
         maximum: 100
