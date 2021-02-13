@@ -67,6 +67,11 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
     }
 
     onSetMatch(id, players) {
+        if (!MainStore.isLoggedIn) {
+            alert("You need to login to make picks.")
+            return
+        }
+
         this.state.pickMatchId = id
         this.state.pickMatchPlayers = players
         let pickData = MainStore.userData[MainStore.eventName].picks[`${Common.getViewingBracketName()}_${Common.reacketIdToDynamoId(id)}`]
@@ -128,14 +133,21 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
 
         return (
             <div className="pickContainer">
-                <div>
+                <div className="title">
                     Pick the winner
                 </div>
                 <form>
                     {options}
                 </form>
+                <button onClick={() => this.onPickClosed()}>Close</button>
             </div>
         )
+    }
+
+    onPickClosed() {
+        this.state.pickIndex = undefined
+        this.state.pickMatchId = undefined
+        this.setState(this.state)
     }
 
     collectRewards() {
