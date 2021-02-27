@@ -268,7 +268,7 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
 
         let players = this.state.searchPlayerMatches.map((player) => {
             return (
-                <div key={player}>
+                <div key={player.playerId}>
                     <button onClick={() => this.onChooseMatchPlayer(player)}>{player.aliases[0]} ({Math.round(player.rating)})</button>
                 </div>
             )
@@ -306,7 +306,7 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
     getNewPlayerElement() {
         let closeMatches = this.state.searchPlayerMatches.map((player) => {
             return (
-                <div key={player}>
+                <div key={player.playerId}>
                     {player.aliases.join(", ")}
                     <button onClick={() => this.addPlayerAlias(player.playerId, this.state.newAlias)}>Add Alias</button>
                 </div>
@@ -329,6 +329,26 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
         )
     }
 
+    calculateAllElo() {
+        fetchEx("CALCULATE_ALL_ELO", undefined, undefined, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then((response) => {
+            return response.json()
+        }).then((response) => {
+            console.log(response)
+            if (response.success === true) {
+                alert("Elo Updated Successfully")
+            } else {
+                alert(`Failed to update elo!\n${response.message}`)
+            }
+        }).catch((error) => {
+            alert(`Failed to update elo!\n${error}`)
+        })
+    }
+
     render() {
         return (
             <div>
@@ -338,6 +358,7 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
                 <br />
                 <br />
                 {this.getNewPlayerElement()}
+                <button onClick={() => this.calculateAllElo()}>Recalculate All Elo</button>
             </div>
         )
     }

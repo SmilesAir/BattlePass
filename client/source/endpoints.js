@@ -17,6 +17,7 @@ let urls = {
     ADD_RATED_MATCH: "{path}/addRatedMatch/{player1Id}/player2Id/{player2Id}",
     ADD_RATED_BATTLE: "{path}/addRatedBattle/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}/result/{result}",
     UPDATE_PLAYER_RATINGS: "{path}/updatePlayerRatings/{eventName}",
+    CALCULATE_ALL_ELO: "{path}/calculateAllElo",
     GET_USER_DATA: "{path}/getUserData",
     UPDATE_PICK: "{path}/updatePick/{eventName}/bracket/{bracketName}/matchId/{matchId}/wager/{wager}",
     COLLECT_REWARDS: "{path}/collectRewards/{eventName}/displayName/{displayName}",

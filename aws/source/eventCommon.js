@@ -510,6 +510,14 @@ module.exports.updatePlayerRatings = (e, c, cb) => { Common.handler(e, c, cb, as
     }
 })}
 
+module.exports.calculateAllElo = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    calculateAllElo()
+
+    return {
+        success: true
+    }
+})}
+
 function insertRatedMatch(player1Id, player2Id, result, time) {
 
 }
@@ -549,20 +557,26 @@ async function addRatedMatch(player1Id, player2Id, info) {
     return matchId
 }
 
-async function addRatedBattle(player1Id, player2Id, result, matchId) {
-    let player1Data = await getPlayerData(player1Id)
-    let player2Data = await getPlayerData(player2Id)
-
+function calculateElo(rating1, rating2, result) {
     // -1 means player1 won, 1 means player2 won, 0 means draw
-    let r1 = Math.pow(10, player1Data.rating / 400)
-    let r2 = Math.pow(10, player2Data.rating / 400)
+    let r1 = Math.pow(10, rating1 / 400)
+    let r2 = Math.pow(10, rating2 / 400)
     let e1 = r1 / (r1 + r2)
     let e2 = r2 / (r1 + r2)
     let s1 = result === 0 ? .5 : (result > 0 ? 0 : 1)
     let s2 = result === 0 ? .5 : (result > 0 ? 1 : 0)
     let k = 32
-    let newR1 = player1Data.rating + k * (s1 - e1)
-    let newR2 = player2Data.rating + k * (s2 - e2)
+
+    return {
+        rating1: rating1 + k * (s1 - e1),
+        rating2: rating2 + k * (s2 - e2)
+    }
+}
+
+async function addRatedBattle(player1Id, player2Id, result, matchId) {
+    let player1Data = await getPlayerData(player1Id)
+    let player2Data = await getPlayerData(player2Id)
+    let newRating = calculateElo(player1Data.rating, player2Data.rating)
 
     let now = Date.now()
     let battleId = uuid.v1();
@@ -575,12 +589,12 @@ async function addRatedBattle(player1Id, player2Id, result, matchId) {
                 {
                     playerId: player1Id,
                     oldRating: player1Data.rating,
-                    newRating: newR1
+                    newRating: newRating.rating1
                 },
                 {
                     playerId: player2Id,
                     oldRating: player2Data.rating,
-                    newRating: newR2
+                    newRating: newRating.rating2
                 }
             ],
             createdAt: now,
@@ -608,11 +622,11 @@ async function addRatedBattle(player1Id, player2Id, result, matchId) {
         throw error
     })
 
-    await updatePlayerBattle(player1Id, battleId, newR1)
-    await updatePlayerBattle(player2Id, battleId, newR2)
+    await appendPlayerBattle(player1Id, battleId, newR1)
+    await appendPlayerBattle(player2Id, battleId, newR2)
 }
 
-async function updatePlayerBattle(playerId, battleId, newRating) {
+async function appendPlayerBattle(playerId, battleId, newRating) {
     let updateParams = {
         TableName : process.env.PLAYER_TABLE,
         Key: {"key": playerId},
@@ -767,4 +781,180 @@ async function updatePlayerRatings(eventName) {
             throw error
         })
     }
+}
+
+async function calculateAllElo() {
+    let matches = await scanTable(process.env.MATCH_TABLE, "playedAt, players, battles, #key", {
+            "#key": "key"
+        })
+    matches = matches.sort((a, b) => {
+        return a.playedAt - b.playedAt
+    })
+
+    let battles = await scanTable(process.env.BATTLE_TABLE, "players, #key, #result", {
+            "#key": "key",
+            "#result": "result"
+        })
+
+    let players = await scanTable(process.env.PLAYER_TABLE, "aliases, #key, battles, createdAt, rating", {
+            "#key": "key"
+        })
+
+    let newPlayers = []
+    let dirtyBattles = []
+    let dirtyMatches = []
+
+    for (let match of matches) {
+        if (match.battles.length > 0) {
+            let oldMatchPlayer1 = match.players[0]
+            let oldMatchPlayer2 = match.players[1]
+            let player1 = getOrAddPlayer(oldMatchPlayer1, newPlayers)
+            let player2 = getOrAddPlayer(oldMatchPlayer2, newPlayers)
+
+            let oldRating1 = player1.rating
+            let oldRating2 = player2.rating
+
+            for (let matchBattleKey of match.battles) {
+                let battle = battles.find((x) => {
+                    return x.key === matchBattleKey
+                })
+                if (battle === undefined) {
+                    console.error("Can't find battle")
+                } else {
+                    let newRating = calculateElo(player1.rating, player2.rating, battle.result)
+                    player1.rating = newRating.rating1
+                    player2.rating = newRating.rating2
+
+                    if (battle.players[0].oldRating !== player1.rating ||
+                        battle.players[0].newRating !== newRating.rating1 ||
+                        battle.players[1].oldRating !== player2.rating ||
+                        battle.players[1].newRating !== newRating.rating2) {
+
+                        battle.players[0].oldRating = player1.rating
+                        battle.players[0].newRating = newRating.rating1
+                        battle.players[1].oldRating = player2.rating
+                        battle.players[1].newRating = newRating.rating2
+
+                        dirtyBattles.push(battle)
+                    }
+                }
+            }
+
+            if (oldMatchPlayer1.oldRating !== oldRating1 ||
+                oldMatchPlayer2.oldRating !== oldRating2 ||
+                oldMatchPlayer1.newRating !== player1.rating ||
+                oldMatchPlayer2.newRating !== player2.rating) {
+
+                oldMatchPlayer1.oldRating = oldRating1
+                oldMatchPlayer2.oldRating = oldRating2
+                oldMatchPlayer1.newRating = player1.rating
+                oldMatchPlayer2.newRating = player2.rating
+
+                dirtyMatches.push(match)
+            }
+
+            //console.log(JSON.stringify(oldMatchPlayer1), JSON.stringify(match))
+        }
+    }
+
+    let putRequests = []
+    for (let playerIndex = 0; playerIndex < newPlayers.length; ++playerIndex) {
+        let newPlayer = newPlayers[playerIndex]
+        let oldPlayer = players.find((x) => {
+            return x.key === newPlayer.playerId
+        })
+        if (oldPlayer === undefined) {
+            console.error("Trying to update a player that didn't previously exist. ", newPlayer)
+        } else if (oldPlayer.rating !== newPlayer.rating) {
+            let putPlayer = Object.assign({}, oldPlayer)
+            putPlayer.rating = newPlayer.rating
+            putRequests.push({
+                PutRequest: {
+                    Item: putPlayer
+                }
+            })
+        }
+    }
+    batchPutItems(process.env.PLAYER_TABLE, putRequests)
+
+    putRequests = []
+    for (let matchIndex = 0; matchIndex < dirtyMatches.length; ++matchIndex) {
+        let newMatch = dirtyMatches[matchIndex]
+        putRequests.push({
+            PutRequest: {
+                Item: newMatch
+            }
+        })
+    }
+    console.log("matches", putRequests)
+    batchPutItems(process.env.MATCH_TABLE, putRequests)
+
+    putRequests = []
+    for (let battleIndex = 0; battleIndex < dirtyBattles.length; ++battleIndex) {
+        let newBattle = dirtyBattles[battleIndex]
+        putRequests.push({
+            PutRequest: {
+                Item: newBattle
+            }
+        })
+    }
+    console.log("battles", putRequests)
+    batchPutItems(process.env.BATTLE_TABLE, putRequests)
+}
+
+async function batchPutItems(tableName, putRequests) {
+    for (let i = 0; i < putRequests.length; i += 25) {
+        let params = {
+            RequestItems: {
+                [tableName]: putRequests.slice(i, 25)
+            }
+        }
+        await docClient.batchWrite(params).promise().catch((error) => {
+            throw error
+        })
+    }
+}
+
+function getOrAddPlayer(matchPlayer, playerList) {
+    let foundPlayer = playerList.find((x) => {
+        return x.playerId === matchPlayer.playerId
+    })
+    if (foundPlayer !== undefined) {
+        return foundPlayer
+    } else {
+        let newPlayer = {
+            playerId: matchPlayer.playerId,
+            rating: 400,
+            battles: []
+        }
+        playerList.push(newPlayer)
+
+        return newPlayer
+    }
+}
+
+async function scanTable(tableName, projectionExpression, expressionAttributeNames) {
+    let params = {
+        TableName: tableName,
+        ProjectionExpression: projectionExpression,
+        ExpressionAttributeNames: expressionAttributeNames
+    }
+
+    let retItems = []
+    let onScan = async (err, data) => {
+        if (err) {
+            throw `Error scaning ${tableName}. ` + err
+        } else {
+            retItems = retItems.concat(data.Items)
+
+            if (data.LastEvaluatedKey !== undefined) {
+                params.ExclusiveStartKey = data.LastEvaluatedKey
+                await docClient.scan(params, onScan).promise()
+            }
+        }
+    }
+
+    await docClient.scan(params, onScan).promise()
+
+    return retItems
 }

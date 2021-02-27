@@ -71,6 +71,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem 
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.PLAYER_TABLE}"
     - Effect: Allow
       Action:
@@ -87,6 +88,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem 
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.BATTLE_TABLE}"
     - Effect: Allow
       Action:
@@ -95,6 +97,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - dynamodb:BatchWriteItem 
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.MATCH_TABLE}"
     - Effect: Allow
       Action:
@@ -227,6 +230,13 @@ functions:
     events:
       - http:
           path: updatePlayerRatings/{eventName}
+          method: post
+          cors: true
+  calculateAllElo:
+    handler: source/eventCommon.calculateAllElo
+    events:
+      - http:
+          path: calculateAllElo
           method: post
           cors: true
   getUserData:
