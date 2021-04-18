@@ -21,10 +21,8 @@
         "deploy:production": "npm i && npm run build:production && aws s3 sync ./builds/web s3://battlepass-production"
     },
     "dependencies": {
-        "@aws-amplify/auth": "^3.3.4",
-        "@aws-amplify/core": "^3.4.5",
-        "@aws-amplify/ui-react": "^0.2.14",
-        "aws-amplify": "^3.0.23",
+        "@aws-amplify/ui-react": "^1.0.6",
+        "aws-amplify": "^3.3.26",
         "aws-sdk": "2.316.0",
         "duel": "^3.2.0",
         "mobx": "^5.1.2",
@@ -35,8 +33,8 @@
         "uuid": "^8.3.0"
     },
     "devDependencies": {
-        "@babel/plugin-proposal-decorators": "^7.1.6",
         "@babel/plugin-proposal-class-properties": "^7.1.0",
+        "@babel/plugin-proposal-decorators": "^7.1.6",
         "codeglue": "git+https://github.com/SmilesAir/codeglue.git",
         "eslint": "^4.19.1",
         "eslint-plugin-react": "^7.11.1"

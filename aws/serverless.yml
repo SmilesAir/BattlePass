@@ -6,6 +6,7 @@ provider:
   runtime: nodejs12.x
   region: us-west-2
   stage: ${opt:stage, "development"}
+  profile: ryan-github
 
   environment:
     EVENT_TABLE: ${self:service}-${self:provider.stage}-eventTable
