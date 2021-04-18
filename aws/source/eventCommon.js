@@ -576,7 +576,7 @@ function calculateElo(rating1, rating2, result) {
 async function addRatedBattle(player1Id, player2Id, result, matchId) {
     let player1Data = await getPlayerData(player1Id)
     let player2Data = await getPlayerData(player2Id)
-    let newRating = calculateElo(player1Data.rating, player2Data.rating)
+    let newRating = calculateElo(player1Data.rating, player2Data.rating, result)
 
     let now = Date.now()
     let battleId = uuid.v1();
@@ -613,8 +613,8 @@ async function addRatedBattle(player1Id, player2Id, result, matchId) {
         ReturnValues: "NONE",
         UpdateExpression: "set players[0].newRating = :newR1, players[1].newRating = :newR2, battles = list_append(battles, :newBattle)",
         ExpressionAttributeValues: {
-            ":newR1": newR1,
-            ":newR2": newR2,
+            ":newR1": newRating.rating1,
+            ":newR2": newRating.rating2,
             ":newBattle": [battleId]
         }
     }
@@ -622,8 +622,8 @@ async function addRatedBattle(player1Id, player2Id, result, matchId) {
         throw error
     })
 
-    await appendPlayerBattle(player1Id, battleId, newR1)
-    await appendPlayerBattle(player2Id, battleId, newR2)
+    await appendPlayerBattle(player1Id, battleId, newRating.rating1)
+    await appendPlayerBattle(player2Id, battleId, newRating.rating2)
 }
 
 async function appendPlayerBattle(playerId, battleId, newRating) {
@@ -791,6 +791,8 @@ async function calculateAllElo() {
         return a.playedAt - b.playedAt
     })
 
+    console.log("scaned matches", matches)
+
     let battles = await scanTable(process.env.BATTLE_TABLE, "players, #key, #result", {
             "#key": "key",
             "#result": "result"
@@ -799,6 +801,8 @@ async function calculateAllElo() {
     let players = await scanTable(process.env.PLAYER_TABLE, "aliases, #key, battles, createdAt, rating", {
             "#key": "key"
         })
+
+    console.log("scaned battles", battles)
 
     let newPlayers = []
     let dirtyBattles = []
@@ -875,6 +879,7 @@ async function calculateAllElo() {
             })
         }
     }
+    console.log("players", putRequests)
     batchPutItems(process.env.PLAYER_TABLE, putRequests)
 
     putRequests = []
