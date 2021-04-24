@@ -99,6 +99,8 @@ module.exports.setupNewBracket = (e, c, cb) => { Common.handler(e, c, cb, async 
         await docClient.update(updateParams).promise().catch((error) => {
             throw error
         })
+
+        await updatePlayerRatings(eventName)
     }
 
     return {
@@ -478,9 +480,10 @@ module.exports.addNewPlayerAlias = (e, c, cb) => { Common.handler(e, c, cb, asyn
 module.exports.addRatedMatch = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let player1Id = decodeURIComponent(event.pathParameters.player1Id)
     let player2Id = decodeURIComponent(event.pathParameters.player2Id)
+    let time = parseInt(decodeURIComponent(event.pathParameters.time))
     let info = JSON.parse(event.body) || {}
 
-    let matchId = await addRatedMatch(player1Id, player2Id, info)
+    let matchId = await addRatedMatch(player1Id, player2Id, info, time)
 
     return {
         success: true,
@@ -493,8 +496,9 @@ module.exports.addRatedBattle = (e, c, cb) => { Common.handler(e, c, cb, async (
     let player2Id = decodeURIComponent(event.pathParameters.player2Id)
     let result = parseInt(decodeURIComponent(event.pathParameters.result))
     let matchId = decodeURIComponent(event.pathParameters.matchId)
+    let time = parseInt(decodeURIComponent(event.pathParameters.time))
 
-    await addRatedBattle(player1Id, player2Id, result, matchId)
+    await addRatedBattle(player1Id, player2Id, result, matchId, time)
 
     return {
         success: true,
@@ -518,22 +522,40 @@ module.exports.calculateAllElo = (e, c, cb) => { Common.handler(e, c, cb, async 
     }
 })}
 
-function insertRatedMatch(player1Id, player2Id, result, time) {
+module.exports.getMatchHistory = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let matches = await scanTable(process.env.MATCH_TABLE, "playedAt, players, battles, #key", {
+        "#key": "key"
+    })
 
-}
+    let battles = await scanTable(process.env.BATTLE_TABLE, "players, #key, #result", {
+        "#key": "key",
+        "#result": "result"
+    })
 
-async function addRatedMatch(player1Id, player2Id, info) {
+    let players = await scanTable(process.env.PLAYER_TABLE, "aliases, #key, battles, createdAt, rating", {
+        "#key": "key"
+    })
+
+    return {
+        success: true,
+        matches: matches,
+        battles: battles,
+        players: players
+    }
+})}
+
+async function addRatedMatch(player1Id, player2Id, info, time) {
     let player1Data = await getPlayerData(player1Id)
     let player2Data = await getPlayerData(player2Id)
 
-    let now = Date.now()
+    let matchTime = time || Date.now()
     let matchId = uuid.v1()
     let putParams = {
         TableName : process.env.MATCH_TABLE,
         Item: {
             key: matchId,
-            createdAt: now,
-            playedAt: now,
+            createdAt: matchTime,
+            playedAt: matchTime,
             info: info,
             battles: [],
             players: [
@@ -573,12 +595,12 @@ function calculateElo(rating1, rating2, result) {
     }
 }
 
-async function addRatedBattle(player1Id, player2Id, result, matchId) {
+async function addRatedBattle(player1Id, player2Id, result, matchId, time) {
     let player1Data = await getPlayerData(player1Id)
     let player2Data = await getPlayerData(player2Id)
     let newRating = calculateElo(player1Data.rating, player2Data.rating, result)
 
-    let now = Date.now()
+    let battleTime = time || Date.now()
     let battleId = uuid.v1();
     let putParams = {
         TableName : process.env.BATTLE_TABLE,
@@ -597,8 +619,8 @@ async function addRatedBattle(player1Id, player2Id, result, matchId) {
                     newRating: newRating.rating2
                 }
             ],
-            createdAt: now,
-            playedAt: now,
+            createdAt: battleTime,
+            playedAt: battleTime,
             matchId: matchId
         }
     }
@@ -785,8 +807,8 @@ async function updatePlayerRatings(eventName) {
 
 async function calculateAllElo() {
     let matches = await scanTable(process.env.MATCH_TABLE, "playedAt, players, battles, #key", {
-            "#key": "key"
-        })
+        "#key": "key"
+    })
     matches = matches.sort((a, b) => {
         return a.playedAt - b.playedAt
     })

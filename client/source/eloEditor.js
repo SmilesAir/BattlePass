@@ -21,7 +21,8 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
             newAlias: "",
             searchPlayerMatches: [],
             matchId: undefined,
-            lastInputLocation: undefined
+            lastInputLocation: undefined,
+            time: new Date()
         }
     }
 
@@ -86,10 +87,10 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
                 }) !== undefined) {
                     this.state.searchPlayerMatches.push(player)
                     this.setState(this.state)
-                }
 
-                if (matchCount++ > 10) {
-                    return
+                    if (matchCount++ > 10) {
+                        return
+                    }
                 }
             }
         }, 0)
@@ -144,6 +145,8 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
     }
 
     onMatchAliasChanged(event, playerNum) {
+        this.state.matchId = undefined
+
         if (playerNum === 1) {
             this.state.matchAlias1 = event.target.value
             this.state.lastInputLocation = "matchPlayer1"
@@ -172,7 +175,11 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
             return
         }
 
-        fetchEx("ADD_RATED_MATCH", { player1Id: player1.playerId, player2Id: player2.playerId }, undefined, {
+        fetchEx("ADD_RATED_MATCH", {
+            player1Id: player1.playerId,
+            player2Id: player2.playerId,
+            time: this.state.time.getTime()
+        }, undefined, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -209,7 +216,8 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
             matchId: this.state.matchId,
             player1Id: this.state.matchPlayer1.playerId,
             player2Id: this.state.matchPlayer2.playerId,
-            result: result
+            result: result,
+            time: this.state.time.getTime()
         }, undefined, {
             method: "POST",
             headers: {
@@ -285,6 +293,11 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
         )
     }
 
+    onTimeChanged(val) {
+        this.state.time = val
+        this.setState(this.state)
+    }
+
     getRecordMatchElement() {
         return (
             <div>
@@ -296,6 +309,7 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
                     <input type="text" value={this.state.matchAlias1} onChange={(event) => this.onMatchAliasChanged(event, 1)} />
                     <label> Player 2 Alias: </label>
                     <input type="text" value={this.state.matchAlias2} onChange={(event) => this.onMatchAliasChanged(event, 2)} />
+                    <MainStore.DateTimePicker onChange={(val) => this.onTimeChanged(val)} value={this.state.time} />
                 </div>
                 {this.getCloseMatchPlayersElement()}
                 {this.getRecordBattleElement()}
@@ -349,6 +363,99 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
         })
     }
 
+    refreshMatchHistory() {
+        fetchEx("GET_MATCH_HISTORY", undefined, undefined, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then((response) => {
+            return response.json()
+        }).then((response) => {
+            console.log(response)
+            if (response.success === true) {
+                console.log(response.matches, response.battles, response.players)
+
+                this.state.matches = response.matches.sort((a, b) => {
+                    return a.playedAt - b.playedAt
+                })
+
+                this.state.battles = {}
+                for (let battle of response.battles) {
+                    this.state.battles[battle.key] = battle
+                }
+
+                this.state.players = {}
+                for (let player of response.players) {
+                    this.state.players[player.key] = player
+                }
+                this.setState(this.state)
+            }
+        }).catch((error) => {
+            alert(`Failed to get match history\n${error}`)
+        })
+    }
+
+    deleteMatch(match) {
+        if (confirm("Are you sure you want to delete match?")) {
+            // delete match
+        }
+    }
+
+    getPlayerName(playerId) {
+        let playerData = this.state.players[playerId]
+        return playerData !== undefined ? playerData.aliases[0] : "Missing Name"
+    }
+
+    getBattleHistoryElement(match) {
+        let battles = match.battles.map((battleKey) => {
+            let battle = this.state.battles[battleKey]
+
+            if (battle === undefined || battle.players.length !== 2) {
+                return undefined
+            }
+
+            return (
+                <div key={battle.key} className="battleContainer">
+                    <div className={battle.result === -1 ? "winner" : ""}>{this.getPlayerName(battle.players[0].playerId)}</div>
+                    <div className="vs">{"vs"}</div>
+                    <div className={battle.result === 1 ? "winner" : ""}>{this.getPlayerName(battle.players[1].playerId)}</div>
+                </div>
+            )
+        })
+        return (
+            <div>
+                {battles}
+            </div>
+        )
+    }
+
+    getMatchHistoryElement() {
+        let matchElements = null
+        if (this.state.matches !== undefined) {
+            matchElements = this.state.matches.map((match) => {
+                let playedAt = new Date(match.playedAt)
+                return (
+                    <div key={match.key}>
+                        <div className="matchHistoryHeader">
+                            {playedAt.toLocaleDateString()} {playedAt.toLocaleTimeString()} - {this.getPlayerName(match.players[0].playerId)} vs {this.getPlayerName(match.players[1].playerId)}
+                            <button>Add Battle</button>
+                            <button onClick={() => this.deleteMatch(match)}>Delete</button>
+                        </div>
+                        {this.getBattleHistoryElement(match)}
+                    </div>
+                )
+            })
+        }
+
+        return (
+            <div>
+                <button onClick={() => this.refreshMatchHistory()}>Refresh Match History</button>
+                {matchElements}
+            </div>
+        )
+    }
+
     render() {
         return (
             <div>
@@ -359,6 +466,9 @@ module.exports = @MobxReact.observer class EloEditor extends React.Component {
                 <br />
                 {this.getNewPlayerElement()}
                 <button onClick={() => this.calculateAllElo()}>Recalculate All Elo</button>
+                <br />
+                <br />
+                {this.getMatchHistoryElement()}
             </div>
         )
     }

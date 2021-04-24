@@ -270,14 +270,14 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
     }
 
     render() {
-        let isFreeUser = Common.getUserTier() === 0
+        //let isFreeUser = Common.getUserTier() === 0
         return (
             <div>
                 <Welcome />
                 <Rewards />
                 {this.getPickElement()}
                 <div className="watchLinkContainer">
-                    <a className="watchLink" href="https://www.frisbeeguru.com/tiny-room-battle-challenge-3-2021/" target="_blank">Watch Tiny Room Challenge 3</a>
+                    <a className="watchLink" href="https://www.frisbeeguru.com/tiny-room-battle-challenge-4/" target="_blank" rel="noreferrer">Watch Tiny Room Challenge 4</a>
                 </div>
                 <EventInfo />
                 {this.getCollectRewardsElement()}

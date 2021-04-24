@@ -216,14 +216,14 @@ functions:
     handler: source/eventCommon.addRatedMatch
     events:
       - http:
-          path: addRatedMatch/{player1Id}/player2Id/{player2Id}
+          path: addRatedMatch/{player1Id}/player2Id/{player2Id}/time/{time}
           method: post
           cors: true
   addRatedBattle:
     handler: source/eventCommon.addRatedBattle
     events:
       - http:
-          path: addRatedBattle/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}/result/{result}
+          path: addRatedBattle/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}/result/{result}/time/{time}
           method: post
           cors: true
   updatePlayerRatings:
@@ -239,6 +239,13 @@ functions:
       - http:
           path: calculateAllElo
           method: post
+          cors: true
+  getMatchHistory:
+    handler: source/eventCommon.getMatchHistory
+    events:
+      - http:
+          path: getMatchHistory
+          method: get
           cors: true
   getUserData:
     handler: source/userCommon.getUserData

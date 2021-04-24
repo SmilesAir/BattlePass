@@ -8,6 +8,7 @@ import Amplify from "@aws-amplify/core"
 import { Hub } from "@aws-amplify/core"
 import Auth from "@aws-amplify/auth"
 import { AmplifySignOut, AmplifyAuthenticator, AmplifySignInButton, AmplifySignUp, AmplifySignIn } from "@aws-amplify/ui-react"
+import DateTimePicker from "react-datetime-picker"
 
 const MainStore = require("./mainStore.js")
 const Setup = require("./setup.js")
@@ -45,6 +46,7 @@ MainStore.url = new URL(window.location.href)
 MainStore.Reacket = Reacket
 MainStore.Auth = Auth
 MainStore.AmplifySignOut = AmplifySignOut
+MainStore.DateTimePicker = DateTimePicker
 
 @MobxReact.observer class AccountLogin extends React.Component {
     constructor() {
