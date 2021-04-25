@@ -26,6 +26,7 @@ module.exports = @MobxReact.observer class Admin extends React.Component {
                     <a className="link" href={`${urlBase}overlay&cheers=1`}>Overlay</a>
                     <a className="link" href={`${urlBase}leaderboard`}>Leaderboard</a>
                     <a className="link" href={`${urlBase}eloEditor`}>Elo Editor</a>
+                    <a className="link" href={`${urlBase}eloLeaderboard`}>Elo Leaderboard</a>
                 </div>
             )
         }

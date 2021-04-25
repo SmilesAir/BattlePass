@@ -18,6 +18,7 @@ const Runtime = require("./runtime.js")
 const Overlay = require("./overlay.js")
 const Leaderboard = require("./leaderboard.js")
 const EloEditor = require("./eloEditor.js")
+const EloLeaderboard = require("./eloLeaderboard.js")
 const Common = require("./common.js")
 
 require("./index.less")
@@ -178,6 +179,8 @@ MainStore.DateTimePicker = DateTimePicker
                 return <Leaderboard />
             case "eloEditor":
                 return <EloEditor />
+            case "eloLeaderboard":
+                return <EloLeaderboard />
             default:
                 return (
                     <div>
