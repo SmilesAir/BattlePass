@@ -429,7 +429,7 @@ module.exports.getCurrentEventLeaderboard = (e, c, cb) => { Common.handler(e, c,
 
             if (data.LastEvaluatedKey !== undefined) {
                 params.ExclusiveStartKey = data.LastEvaluatedKey
-                await docClient.scan(params, onScan).promise()
+                docClient.scan(params, onScan)
             }
         }
     }
@@ -743,7 +743,7 @@ async function getPlayers() {
 
             if (data.LastEvaluatedKey !== undefined) {
                 params.ExclusiveStartKey = data.LastEvaluatedKey
-                await docClient.scan(params, onScan).promise()
+                docClient.scan(params, onScan)
             }
         }
     }
@@ -967,21 +967,15 @@ async function scanTable(tableName, projectionExpression, expressionAttributeNam
         ExpressionAttributeNames: expressionAttributeNames
     }
 
+    let items
     let retItems = []
-    let onScan = async (err, data) => {
-        if (err) {
-            throw `Error scaning ${tableName}. ` + err
-        } else {
-            retItems = retItems.concat(data.Items)
-
-            if (data.LastEvaluatedKey !== undefined) {
-                params.ExclusiveStartKey = data.LastEvaluatedKey
-                await docClient.scan(params, onScan).promise()
-            }
+    do {
+        items = await docClient.scan(params).promise()
+        for (let item of items.Items) {
+            retItems.push(item)
         }
-    }
-
-    await docClient.scan(params, onScan).promise()
+        params.ExclusiveStartKey = items.LastEvaluatedKey
+    } while(typeof items.LastEvaluatedKey !== "undefined")
 
     return retItems
 }
