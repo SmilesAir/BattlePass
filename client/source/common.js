@@ -400,7 +400,8 @@ module.exports.idToPrettyName = function(id) {
         "Final",
         "Semifinal",
         "Quaterfinal",
-        "Preliminary"
+        "Preliminary",
+        "Qualification"
     ]
 
     if (`${MainStore.duel.p}` === parts[1]) {

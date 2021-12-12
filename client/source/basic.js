@@ -277,7 +277,7 @@ module.exports = @MobxReact.observer class Basic extends React.Component {
                 <Rewards />
                 {this.getPickElement()}
                 <div className="watchLinkContainer">
-                    <a className="watchLink" href="https://www.frisbeeguru.com/tiny-room-battle-challenge-4/" target="_blank" rel="noreferrer">Watch Tiny Room Challenge 4</a>
+                    <a className="watchLink" href="https://www.frisbeeguru.com/indie-freestyle-disc-championship/" target="_blank" rel="noreferrer">Watch Junior Indie Freestyle Disc Championships</a>
                 </div>
                 <EventInfo />
                 {this.getCollectRewardsElement()}
