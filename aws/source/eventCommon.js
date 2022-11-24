@@ -91,6 +91,7 @@ module.exports.setupNewBracket = (e, c, cb) => { Common.handler(e, c, cb, async 
                 ":bracketName": bracketName,
                 ":bracketData": {
                     names: request.names,
+                    nameToImageMap: request.nameToImageMap,
                     results: request.results
                 }
             },

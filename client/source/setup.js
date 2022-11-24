@@ -8,6 +8,8 @@ const { fetchEx, fetchAuth } = require("./endpoints.js")
 const Common = require("./common.js")
 const MainStore = require("./mainStore.js")
 
+require("./setup.less")
+
 module.exports = @MobxReact.observer class Setup extends React.Component {
     constructor() {
         super()
@@ -16,10 +18,12 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
             eventName: "",
             bracketName: "",
             namesText: "",
+            imagesText: "",
             swapName: undefined,
             isCreatingNewEvent: false,
             isCreatingNewBracket: false,
-            code: ""
+            code: "",
+            nameToImageMap: {}
         }
     }
 
@@ -67,9 +71,13 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
             for (let bracketName in eventResponse.brackets) {
                 this.state.bracketNames.push(bracketName)
             }
+
             if (!this.isBracketInvalid()) {
-                this.state.namesText = this.state.brackets[this.state.bracketName].names.join("\n")
-                Common.updateBracketFromNamesString(this.state.namesText, false)
+                let bracketData = this.state.brackets[this.state.bracketName]
+                this.state.namesText = bracketData.names.join("\n")
+                this.state.nameToImageMap = bracketData.nameToImageMap || {}
+                Common.updateBracketFromNamesString(this.state.namesText, this.state.nameToImageMap, false)
+                this.updateNameToImageMapFromMap()
             }
 
             this.setState(this.state)
@@ -79,7 +87,37 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
     onNamesChanged(event) {
         this.state.namesText = event.target.value
         this.setState(this.state)
-        Common.updateBracketFromNamesString(this.state.namesText, true)
+        Common.updateBracketFromNamesString(this.state.namesText, this.state.nameToImageMap, true)
+        this.updateNameToImageMapFromText()
+    }
+
+    onImagesChanged(event) {
+        this.state.imagesText = event.target.value
+        this.setState(this.state)
+        this.updateNameToImageMapFromText()
+    }
+
+    updateNameToImageMapFromText() {
+        this.state.nameToImageMap = {}
+        let names = this.state.namesText.split("\n")
+        let images = this.state.imagesText.split("\n")
+        for (let i = 0; i < names.length && i < images.length; ++i) {
+            if (images[i].length > 0) {
+                this.state.nameToImageMap[names[i]] = images[i]
+            }
+        }
+        this.setState(this.state)
+    }
+
+    updateNameToImageMapFromMap() {
+        let names = this.state.namesText.split("\n")
+        let images = []
+        for (let name of names) {
+            images.push(this.state.nameToImageMap[name])
+        }
+
+        this.state.imagesText = images.join("\n")
+        this.setState(this.state)
     }
 
     swapPlayer(name) {
@@ -102,7 +140,8 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         }
 
         this.setState(this.state)
-        Common.updateBracketFromNamesString(this.state.namesText, true)
+        Common.updateBracketFromNamesString(this.state.namesText, this.state.nameToImageMap, true)
+        this.updateNameToImageMapFromMap()
     }
 
     getPlayerEntries() {
@@ -236,7 +275,8 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
 
         this.setState(this.state)
 
-        Common.updateBracketFromNamesString(this.state.namesText, false)
+        Common.updateBracketFromNamesString(this.state.namesText, this.state.nameToImageMap, false)
+        this.updateNameToImageMapFromMap()
     }
 
     getBracketsDropDown() {
@@ -272,6 +312,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
             },
             body: JSON.stringify({
                 names: this.state.namesText.split("\n"),
+                nameToImageMap: this.state.nameToImageMap,
                 results: MainStore.brackets[MainStore.currentBracket] !== undefined ? MainStore.brackets[MainStore.currentBracket].results : undefined
             })
         }).then((response) => {
@@ -399,9 +440,10 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
                 <button onClick={() => this.setCreatingNewBracket()}>Create New Bracket</button>
                 <button onClick={() => this.setCurrentBracket()} disabled={this.isBracketInvalid()}>Set as Current Bracket</button>
                 <button onClick={() => this.setBracketLock(!isCurrentBracketLocked)} disabled={this.isBracketInvalid()}>{isCurrentBracketLocked ? "Unlock Bracket" : "Lock Bracket"}</button>
-                <div>
-                    <div>Enter player names (1 per line)</div>
+                <div>Enter player names (1 per line)</div>
+                <div className="textareas">
                     <textarea onChange={(event) => this.onNamesChanged(event)} value={this.state.namesText} />
+                    <textarea onChange={(event) => this.onImagesChanged(event)} value={this.state.imagesText} />
                 </div>
                 <div>
                     {this.getPlayerEntries()}

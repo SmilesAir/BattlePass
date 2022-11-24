@@ -26,11 +26,11 @@ module.exports.getViewingBracketName = function() {
 
 module.exports.rebuildBracket = function() {
     let bracket = MainStore.brackets[module.exports.getViewingBracketName()]
-    Common.updateBracketFromNames(bracket.names, false, bracket.ratings)
+    Common.updateBracketFromNames(bracket.names, bracket.nameToImageMap, false, bracket.ratings)
 }
 
-module.exports.updateBracketFromNamesString = function(namesString, createNewBracket, ratings) {
-    Common.updateBracketFromNames(namesString.split("\n"), createNewBracket, ratings)
+module.exports.updateBracketFromNamesString = function(namesString, nameToImageMap, createNewBracket, ratings) {
+    Common.updateBracketFromNames(namesString.split("\n"), nameToImageMap, createNewBracket, ratings)
 }
 
 module.exports.getMatchResults = function() {
@@ -97,7 +97,7 @@ module.exports.getReacketId = function(id, roundCount) {
     return `${topNum}.${matchNum}`
 }
 
-module.exports.updateBracketFromNames = function(namesArray, createNewBracket, ratings) {
+module.exports.updateBracketFromNames = function(namesArray, nameToImageMap, createNewBracket, ratings) {
     let names = namesArray.filter((name) => {
         return name !== undefined && name.length > 0
     })
@@ -188,9 +188,11 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket, r
                         rating = ` ${Math.round(ratings[player - 1])}`
                     }
                 }
+                let playerName = names[player - 1]
                 newMatch.players.push({
                     "id": player,
-                    "name": names[player - 1],
+                    "name": playerName,
+                    "imageUrl": getImageUrl(playerName, nameToImageMap),
                     "rating": rating,
                     "seed": player
                 })
@@ -209,6 +211,16 @@ module.exports.updateBracketFromNames = function(namesArray, createNewBracket, r
 
         MainStore.reacketMatches.push(newMatch)
     }
+}
+
+function getImageUrl(playerName, nameToImageMap) {
+    let filename = nameToImageMap[playerName]
+
+    if (filename !== undefined && filename.length > 0) {
+        return "https://battlepass-images.s3.us-west-2.amazonaws.com/" + filename
+    }
+
+    return "https://battlepass-images.s3.us-west-2.amazonaws.com/Anonymous.png"
 }
 
 module.exports.updateScores = function() {
