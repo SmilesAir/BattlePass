@@ -8,7 +8,7 @@ let urls = {
     SETUP_GET_EVENTS: "{path}/setupGetEvents",
     SETUP_GET_EVENT: "{path}/setupGetEvent/{eventName}",
     GET_CURRENT_EVENT_INFO: "{path}/getCurrentEventInfo",
-    SET_CURRENT_MATCH: "{path}/setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}",
+    SET_CURRENT_MATCH: "{path}/setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}/currentPlayerIndex/{currentPlayerIndex}",
     UPDATE_MATCH_SCORE: "{path}/updateMatchScore/{eventName}/bracket/{bracketName}/matchId/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}/ratingMatchId/{ratingMatchId}",
     GET_CURRENT_EVENT_LEADERBOARD: "{path}/getCurrentEventLeaderboard/{eventName}",
     GET_PLAYERS: "{path}/getPlayers",
@@ -24,7 +24,8 @@ let urls = {
     COLLECT_REWARDS: "{path}/collectRewards/{eventName}/displayName/{displayName}",
     REDEEM_CODE: "{path}/redeemCode/{code}",
     SETUP_CREATE_CODE: "{path}/setupCreateCode/{eventName}/code/{code}",
-    SEND_CHEER: "{path}/sendCheer/{eventName}/displayName/{displayName}/playerIndex/{playerIndex}/type/{type}"
+    SEND_CHEER: "{path}/sendCheer/{eventName}/displayName/{displayName}/playerIndex/{playerIndex}/type/{type}",
+    UPDATE_CURRENT_PLAYER_INDEX: "{path}/updateCurrentPlayerIndex/{eventName}/bracket/{bracketName}"
 }
 
 function buildUrl(isAuth, urlKey, pathParams, queryParams) {

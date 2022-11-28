@@ -173,6 +173,7 @@ module.exports.updateBracketFromNames = function(namesArray, nameToImageMap, cre
                 newMatch.players.push({
                     "id": 0,
                     "name": "TBD",
+                    "imageUrl": "https://battlepass-images.s3.us-west-2.amazonaws.com/TBD.png",
                     "rating": "",
                     "seed": 0
                 })
@@ -214,7 +215,7 @@ module.exports.updateBracketFromNames = function(namesArray, nameToImageMap, cre
 }
 
 function getImageUrl(playerName, nameToImageMap) {
-    let filename = nameToImageMap[playerName]
+    let filename = nameToImageMap !== undefined && nameToImageMap[playerName]
 
     if (filename !== undefined && filename.length > 0) {
         return "https://battlepass-images.s3.us-west-2.amazonaws.com/" + filename

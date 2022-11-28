@@ -286,6 +286,7 @@ module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async 
     let matchId = decodeURIComponent(event.pathParameters.matchId)
     let player1Id = decodeURIComponent(event.pathParameters.player1Id)
     let player2Id = decodeURIComponent(event.pathParameters.player2Id)
+    let currentPlayerIndex = decodeURIComponent(event.pathParameters.currentPlayerIndex)
 
     // Create a new match for player ratings
     let ratingMatchId = "undefined"
@@ -295,6 +296,8 @@ module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async 
             bracketName: bracketName
         })
     }
+
+    await updateCurrentPlayerIndex(eventName, bracketName, currentPlayerIndex)
 
     let params = {
         TableName: process.env.EVENT_TABLE,
@@ -321,6 +324,24 @@ module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async 
         }
     })
 })}
+
+async function updateCurrentPlayerIndex(eventName, bracketName, playerIndex) {
+    let params = {
+        TableName: process.env.EVENT_TABLE,
+        Key: {"key": eventName},
+        UpdateExpression: `set brackets.#bracketName.currentPlayerIndex = :playerIndex`,
+        ExpressionAttributeNames: {
+            "#bracketName": bracketName
+        },
+        ExpressionAttributeValues: {
+            ":playerIndex": playerIndex
+        },
+        ReturnValues: "NONE"
+    }
+    await docClient.update(params).promise().catch((error) => {
+        throw error
+    })
+}
 
 module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let eventName = decodeURIComponent(event.pathParameters.eventName)
@@ -364,6 +385,8 @@ module.exports.updateMatchScore = (e, c, cb) => { Common.handler(e, c, cb, async
             if (player1Id !== "undefined" && player2Id !== "undefined" && ratingMatchId !== "undefined") {
                 await addRatedBattle(player1Id, player2Id, request.playerIndex === 0 ? -1 : 1, ratingMatchId)
             }
+
+            await updateCurrentPlayerIndex(eventName, bracketName, request.playerIndex)
         }
 
         let getParams = {
@@ -543,6 +566,38 @@ module.exports.getMatchHistory = (e, c, cb) => { Common.handler(e, c, cb, async 
         battles: battles,
         players: players
     }
+})}
+
+module.exports.updateCurrentPlayerIndex = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+    let bracketName = decodeURIComponent(event.pathParameters.bracketName)
+    let request = JSON.parse(event.body) || {}
+
+    let playerIndex = request.currentPlayerIndex
+    if (playerIndex === undefined) {
+        let getParams = {
+            TableName: process.env.EVENT_TABLE,
+            Key: {"key": eventName}
+        }
+        let eventData = await docClient.get(getParams).promise().then((response) => {
+            let bracketData = response.Item.brackets[bracketName]
+            if (bracketData === undefined || bracketData.locked !== true) {
+                doUpdate = true
+            }
+
+            return response.Item
+        }).catch((error) => {
+            throw error
+        })
+
+        let bracket = eventData.brackets[bracketName]
+        if (bracket === undefined) {
+            throw `${bracketName} bracket found in event ${eventName}`
+        }
+        playerIndex = bracket.currentPlayerIndex === undefined ? 0 : (bracket.currentPlayerIndex + 1) % 2
+    }
+
+    await updateCurrentPlayerIndex(eventName, bracketName, playerIndex)
 })}
 
 async function addRatedMatch(player1Id, player2Id, info, time) {

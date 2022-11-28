@@ -27,13 +27,42 @@ module.exports = @MobxReact.observer class Overlay extends React.Component {
             <div className="overlayContainer">
                 {/* <div className="title">{MainStore.eventName}</div> */}
                 <Cheer />
-                <Bracket />
+                {MainStore.url.searchParams.get("scoreboard") === "1" ? <Scoreboard /> : null}
+                {MainStore.url.searchParams.get("playerInfo") === "1" ? <PlayerNameAndImage /> : null}
             </div>
         )
     }
 }
 
-@MobxReact.observer class Bracket extends React.Component {
+@MobxReact.observer class PlayerNameAndImage extends React.Component {
+    constructor() {
+        super()
+    }
+
+    render() {
+        let matchData = Common.getCurrentMatch()
+        if (matchData === undefined) {
+            return null
+        }
+
+        let currentPlayerIndex = Common.getCurrentBracket().currentPlayerIndex
+        return (
+            <div className="playerNameAndImage">
+                <div
+                    className="playerImage"
+                    style={{
+                        backgroundImage: `url("${matchData.reacket.players[currentPlayerIndex].imageUrl}")`,
+                    }}
+                />
+                <div className="playerName">
+                    {matchData.reacket.players[currentPlayerIndex].name}
+                </div>
+            </div>
+        )
+    }
+}
+
+@MobxReact.observer class Scoreboard extends React.Component {
     constructor() {
         super()
     }
@@ -55,7 +84,7 @@ module.exports = @MobxReact.observer class Overlay extends React.Component {
         let odds0 = wagerTotal === 0 ? "50%" : `${Math.round(matchData.results.wagerTotals[0] / wagerTotal * 100).toFixed()}%`
         let odds1 = wagerTotal === 0 ? "50%" : `${Math.round(matchData.results.wagerTotals[1] / wagerTotal * 100).toFixed()}%`
         return (
-            <div className="bracket" style={style}>
+            <div className="scoreboard" style={style}>
                 <div className="row">
                     <div className="desc">{Common.idToPrettyName(matchData.reacket.id)}</div>
                 </div>

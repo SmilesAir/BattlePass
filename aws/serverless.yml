@@ -174,7 +174,7 @@ functions:
     handler: source/eventCommon.setCurrentMatch
     events:
       - http:
-          path: setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}
+          path: setCurrentMatch/{eventName}/bracket/{bracketName}/matchId/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}/currentPlayerIndex/{currentPlayerIndex}
           method: post
           cors: true
   updateMatchScore:
@@ -246,6 +246,13 @@ functions:
       - http:
           path: getMatchHistory
           method: get
+          cors: true
+  updateCurrentPlayerIndex:
+    handler: source/eventCommon.updateCurrentPlayerIndex
+    events:
+      - http:
+          path: updateCurrentPlayerIndex/{eventName}/bracket/{bracketName}
+          method: post
           cors: true
   getUserData:
     handler: source/userCommon.getUserData

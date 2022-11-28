@@ -54,12 +54,18 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
             return match.id === MainStore.currentMatchId
         })
 
+        let player0 = reacketMatch.players[0]
+        let player1 = reacketMatch.players[1]
+
+        console.log(MainStore.eventName)
+
         fetchEx("SET_CURRENT_MATCH", {
             eventName: MainStore.eventName,
             bracketName: MainStore.currentBracket,
             matchId: Common.reacketIdToDynamoId(id),
-            player1Id: this.getPlayerIdByAlias(reacketMatch.players[0].name),
-            player2Id: this.getPlayerIdByAlias(reacketMatch.players[1].name)
+            player1Id: this.getPlayerIdByAlias(player0.name),
+            player2Id: this.getPlayerIdByAlias(player1.name),
+            currentPlayerIndex: player0.seed > player1.seed ? 0 : 1
         }, undefined, {
             method: "POST",
             headers: {
@@ -140,6 +146,25 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
         })
     }
 
+    onTogglePlayerIndex() {
+        let bracket = Common.getCurrentBracket()
+        bracket.currentPlayerIndex = (bracket.currentPlayerIndex + 1) % 2
+        fetchEx("UPDATE_CURRENT_PLAYER_INDEX", {
+            eventName: MainStore.eventName,
+            bracketName: MainStore.currentBracket
+        }, undefined, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                currentPlayerIndex: undefined
+            })
+        }).catch((error) => {
+            console.error("Failed to update match", error)
+        })
+    }
+
     isScoreAboveZero(playerIndex) {
         return Common.getMatchResults()[Common.reacketIdToDynamoId(MainStore.currentMatchId)].score[playerIndex] > 0
     }
@@ -159,8 +184,9 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
                         <div>#{reacketMatch.players[1].seed} {reacketMatch.players[1].name}: {reacketMatch.score[1]}</div>
                         <button className="scoreButton" onClick={() => this.onRuntimePoint(1, 1)}>+</button>
                         <button className="scoreButton" onClick={() => this.onRuntimePoint(1, -1)} disabled={!this.isScoreAboveZero(1)}>-</button>
-                        <div>Finalize</div>
-                        <button className="finalizeButton" onClick={() => this.onFinalUpdate(!this.isCurrentMatchFinal())}>{ this.isCurrentMatchFinal() ? "Unfinalize Match" : "Finalize Match" }</button>
+                        <div>Match Controls</div>
+                        <button className="matchButton" onClick={() => this.onFinalUpdate(!this.isCurrentMatchFinal())}>{ this.isCurrentMatchFinal() ? "Unfinalize Match" : "Finalize Match" }</button>
+                        <button className="matchButton" onClick={() => this.onTogglePlayerIndex()}>Toggle Player Index</button>
                     </div>
                 )
             }
