@@ -39,6 +39,10 @@ module.exports = @MobxReact.observer class Overlay extends React.Component {
         super()
     }
 
+    shouldShowImage(imageUrl) {
+        return imageUrl.length > 0 && !(imageUrl.includes("Anonymous") || imageUrl.includes("TBD"))
+    }
+
     render() {
         let matchData = Common.getCurrentMatch()
         if (matchData === undefined) {
@@ -46,12 +50,20 @@ module.exports = @MobxReact.observer class Overlay extends React.Component {
         }
 
         let currentPlayerIndex = Common.getCurrentBracket().currentPlayerIndex
+        let imageUrl = matchData.reacket.players[currentPlayerIndex].imageUrl
+        let params = MainStore.url.searchParams
+        let style = {
+            "left": `${params.get("left")}%`,
+            "right": `${params.get("right")}%`,
+            "top": `${params.get("top")}%`,
+            "bottom": `${params.get("bottom")}%`
+        }
         return (
-            <div className="playerNameAndImage">
+            <div className="playerNameAndImage" style={style}>
                 <div
                     className="playerImage"
                     style={{
-                        backgroundImage: `url("${matchData.reacket.players[currentPlayerIndex].imageUrl}")`,
+                        backgroundImage: this.shouldShowImage(imageUrl) ? `url("${imageUrl}")` : undefined,
                     }}
                 />
                 <div className="playerName">
