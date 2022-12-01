@@ -297,7 +297,7 @@ module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async 
         })
     }
 
-    await updateCurrentPlayerIndex(eventName, bracketName, currentPlayerIndex)
+    await updateCurrentPlayerIndex(eventName, bracketName, parseInt(currentPlayerIndex))
 
     let params = {
         TableName: process.env.EVENT_TABLE,
@@ -594,7 +594,7 @@ module.exports.updateCurrentPlayerIndex = (e, c, cb) => { Common.handler(e, c, c
         if (bracket === undefined) {
             throw `${bracketName} bracket found in event ${eventName}`
         }
-        playerIndex = bracket.currentPlayerIndex === undefined ? 0 : (bracket.currentPlayerIndex + 1) % 2
+        playerIndex = bracket.currentPlayerIndex === undefined ? 0 : ((bracket.currentPlayerIndex + 1) % 2)
     }
 
     await updateCurrentPlayerIndex(eventName, bracketName, playerIndex)
