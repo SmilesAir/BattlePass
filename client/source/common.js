@@ -35,7 +35,7 @@ module.exports.updateBracketFromNamesString = function(namesString, nameToImageM
 
 module.exports.getMatchResults = function() {
     let currentBracket = Common.getCurrentBracket()
-    return currentBracket && currentBracket.results
+    return currentBracket && currentBracket.results || {}
 }
 
 module.exports.getCurrentBracket = function() {
@@ -117,7 +117,7 @@ module.exports.updateBracketFromNames = function(namesArray, nameToImageMap, cre
     let matchResults = module.exports.getMatchResults()
     for (let resultId in matchResults) {
         let result = matchResults[resultId]
-        if (result.isFinal) {
+        if (result && result.isFinal) {
             MainStore.duel.score(result.duelId, result.score)
         }
     }
@@ -162,7 +162,7 @@ module.exports.updateBracketFromNames = function(namesArray, nameToImageMap, cre
                 score0,
                 score1
             ],
-            isFinal: result.isFinal,
+            isFinal: result && result.isFinal,
             isCurrent: MainStore.currentMatchId === id,
             label: module.exports.getReacketId(match.id, MainStore.roundCount)
         }
@@ -179,7 +179,7 @@ module.exports.updateBracketFromNames = function(namesArray, nameToImageMap, cre
                 })
             } else if (player !== -1) {
                 let rating = ""
-                if (ratings !== undefined && ratings.length > player - 1) {
+                if (result !== undefined && ratings !== undefined && ratings.length > player - 1) {
                     if (result.ratingMatchData !== undefined && result.ratingMatchData.length > 0) {
                         let ratingData = result.ratingMatchData[loopIndex]
                         let ratingDelta = Math.round(ratingData.newRating - ratingData.oldRating)

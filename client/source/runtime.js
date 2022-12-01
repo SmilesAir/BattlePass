@@ -147,8 +147,6 @@ module.exports = @MobxReact.observer class Runtime extends React.Component {
     }
 
     onTogglePlayerIndex() {
-        let bracket = Common.getCurrentBracket()
-        bracket.currentPlayerIndex = (bracket.currentPlayerIndex + 1) % 2
         fetchEx("UPDATE_CURRENT_PLAYER_INDEX", {
             eventName: MainStore.eventName,
             bracketName: MainStore.currentBracket

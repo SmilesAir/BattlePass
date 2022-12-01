@@ -270,13 +270,14 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         this.state.bracketName = event.target.value
         if (!this.isBracketInvalid()) {
             this.state.namesText = this.state.brackets[this.state.bracketName].names.join("\n")
+            this.state.nameToImageMap = this.state.brackets[this.state.bracketName].nameToImageMap
             MainStore.currentBracket = this.state.bracketName
         }
 
         this.setState(this.state)
 
-        Common.updateBracketFromNamesString(this.state.namesText, this.state.nameToImageMap, false)
         this.updateNameToImageMapFromMap()
+        Common.updateBracketFromNamesString(this.state.namesText, this.state.nameToImageMap, false)
     }
 
     getBracketsDropDown() {
