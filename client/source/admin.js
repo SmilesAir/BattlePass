@@ -14,7 +14,7 @@ module.exports = @MobxReact.observer class Admin extends React.Component {
     }
 
     render() {
-        const urlBase = __STAGE__ === "DEVELOPMENT" ? "http://localhost:8080/index.html?mode=" : "https://tinyroomchallenge.com?mode="
+        const urlBase = __STAGE__ === "DEVELOPMENT" ? "http://localhost:8080/index.html?mode=" : "https://ifdc.tv?mode="
 
         if (Common.isAdmin() && MainStore.url.searchParams.get("mode") !== "overlay") {
             return (
