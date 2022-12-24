@@ -297,7 +297,9 @@ module.exports.setCurrentMatch = (e, c, cb) => { Common.handler(e, c, cb, async 
         })
     }
 
-    await updateCurrentPlayerIndex(eventName, bracketName, parseInt(currentPlayerIndex))
+    // First player in the match alaways plays first reguardless of see
+    //await updateCurrentPlayerIndex(eventName, bracketName, parseInt(currentPlayerIndex))
+    await updateCurrentPlayerIndex(eventName, bracketName, 0)
 
     let params = {
         TableName: process.env.EVENT_TABLE,
