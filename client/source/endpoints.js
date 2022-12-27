@@ -17,6 +17,7 @@ let urls = {
     ADD_RATED_MATCH: "{path}/addRatedMatch/{player1Id}/player2Id/{player2Id}/time/{time}",
     ADD_RATED_BATTLE: "{path}/addRatedBattle/{matchId}/player1Id/{player1Id}/player2Id/{player2Id}/result/{result}/time/{time}",
     UPDATE_PLAYER_RATINGS: "{path}/updatePlayerRatings/{eventName}",
+    CALC_BATTLEPASS_POINTS: "{path}/calcBattlePassPoints/{eventName}",
     CALCULATE_ALL_ELO: "{path}/calculateAllElo",
     GET_MATCH_HISTORY: "{path}/getMatchHistory",
     GET_USER_DATA: "{path}/getUserData",

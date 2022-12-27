@@ -3,10 +3,11 @@ service: battle-pass
 
 provider:
   name: aws
-  runtime: nodejs12.x
+  runtime: nodejs16.x
   region: us-west-2
   stage: ${opt:stage, "development"}
   profile: ryan-github
+  lambdaHashingVersion: 20201221
 
   environment:
     EVENT_TABLE: ${self:service}-${self:provider.stage}-eventTable
@@ -72,7 +73,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-        - dynamodb:BatchWriteItem 
+        - dynamodb:BatchWriteItem
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.PLAYER_TABLE}"
     - Effect: Allow
       Action:
@@ -89,7 +90,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-        - dynamodb:BatchWriteItem 
+        - dynamodb:BatchWriteItem
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.BATTLE_TABLE}"
     - Effect: Allow
       Action:
@@ -98,7 +99,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-        - dynamodb:BatchWriteItem 
+        - dynamodb:BatchWriteItem
       Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.MATCH_TABLE}"
     - Effect: Allow
       Action:
@@ -231,6 +232,13 @@ functions:
     events:
       - http:
           path: updatePlayerRatings/{eventName}
+          method: post
+          cors: true
+  calcBattlePassPoints:
+    handler: source/eventCommon.calcBattlePassPoints
+    events:
+      - http:
+          path: calcBattlePassPoints/{eventName}
           method: post
           cors: true
   calculateAllElo:

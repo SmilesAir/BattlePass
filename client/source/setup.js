@@ -417,6 +417,29 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
         })
     }
 
+    calcBattlePassPoints() {
+        fetchEx("CALC_BATTLEPASS_POINTS", { eventName: MainStore.eventName }, undefined, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then((response) => {
+            if (response.status >= 400) {
+                throw response.message
+            } else {
+                return response.json()
+            }
+        }).then((response) => {
+            if (response.success === true) {
+                alert(`BP Points calculated for ${MainStore.eventName}`)
+            } else {
+                alert(`Failed to update BP points!\n${response.message}`)
+            }
+        }).catch((error) => {
+            alert(`Failed to update BP points!\n${error}`)
+        })
+    }
+
     render() {
         let currentBracket = Common.getCurrentBracket()
         let isCurrentBracketLocked = false
@@ -432,6 +455,7 @@ module.exports = @MobxReact.observer class Setup extends React.Component {
                 <button onClick={() => this.setCreatingNewEvent()}>Create New Event</button>
                 <button onClick={() => this.setCurrentEvent()} disabled={this.isEventInvalid()}>Set as Current Event</button>
                 <button onClick={() => this.updatePlayerRatings()} disabled={this.isEventInvalid()}>Update Player Ratings</button>
+                <button onClick={() => this.calcBattlePassPoints()} disabled={this.isEventInvalid()}>Calc BattlePass Points</button>
                 <div>
                     <button onClick={() => this.createCode()}>Create Premium Code</button>
                     <label>Code: {this.state.code}</label>

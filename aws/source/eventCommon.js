@@ -274,6 +274,106 @@ module.exports.getEventInfo = function(eventName) {
     })
 }
 
+module.exports.getUserItem = function(username) {
+    let getParams = {
+        TableName: process.env.USER_TABLE,
+        Key: {"key": username}
+    }
+
+    return docClient.get(getParams).promise().then((response) => {
+        if (!Common.isEmptyObject(response)) {
+            return response.Item
+        }
+
+        return undefined
+    }).catch((error) => {
+        throw error
+    })
+}
+
+module.exports.collectUserRewards = async function(eventName, username, displayName) {
+    let userData = await module.exports.getUserItem(username)
+    if (userData === undefined) {
+        throw "Can't find user " + username
+    }
+
+    let userEventData = userData[eventName]
+    if (userEventData === undefined) {
+        return
+    }
+
+    let unprocessed = []
+    for (let pick in userEventData.picks) {
+        if (userEventData.processed[pick] === undefined) {
+            unprocessed.push({
+                pickId: pick,
+                wager: userEventData.picks[pick]
+            })
+        }
+    }
+
+    if (unprocessed.length > 0) {
+        let eventInfo = await module.exports.getEventInfo(eventName)
+        if (eventInfo === undefined) {
+            throw "Can't find event " + eventName
+        }
+
+        let newProcessed = []
+        let rewards = {
+            raffleTicketCount: 0,
+            points: 0
+        }
+        for (let pickKey in unprocessed) {
+            let pick = unprocessed[pickKey]
+            let bracketName = pick.pickId.split(/_(.+)/)[0]
+            let matchId = pick.pickId.split(/_(.+)/)[1]
+            let matchData = eventInfo.brackets[bracketName].results[matchId]
+            if (matchData.isFinal === true) {
+                newProcessed.push(pick.pickId)
+
+                let scoreDelta  = matchData.score[1] - matchData.score[0]
+                let isWin = scoreDelta > 0 && pick.wager > 0 || scoreDelta < 0 && pick.wager < 0
+                if (isWin) {
+                    rewards.raffleTicketCount += 10
+                    rewards.points += 100
+                }
+            }
+        }
+
+        await Common.awardRaffleTickets(eventName, username, rewards.raffleTicketCount)
+
+        if (newProcessed.length > 0) {
+            let names = {
+                "#eventName": eventName,
+                "#processed": "processed"
+            }
+            let exp = "set " + newProcessed.map((pickId, index) => {
+                names[`#pickId${index}`] = pickId
+                return `#eventName.#processed.#pickId${index} = :now`
+            }).join(", ")
+            exp += ", #eventName.points = #eventName.points + :points, displayName = :displayName"
+
+            let userUpdateParams = {
+                TableName: process.env.USER_TABLE,
+                Key: {"key": username},
+                UpdateExpression: exp,
+                ExpressionAttributeNames: names,
+                ExpressionAttributeValues: {
+                    ":now": Date.now(),
+                    ":points": rewards.points,
+                    ":displayName": displayName || "Anonymous"
+                },
+                ReturnValues: "NONE"
+            }
+            await docClient.update(userUpdateParams).promise().catch((error) => {
+                throw error
+            })
+        }
+
+        return rewards
+    }
+}
+
 module.exports.setupGetEvent = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let eventName = decodeURIComponent(event.pathParameters.eventName)
 
@@ -446,12 +546,18 @@ module.exports.getCurrentEventLeaderboard = (e, c, cb) => { Common.handler(e, c,
         if (err) {
             throw "Error scaning player points for leaderboard. " + err
         } else {
-            playerData = playerData.concat(data.Items.map((item) => {
-                return {
-                    displayName: item.displayName || "Anonymous",
-                    points: item[eventName].points
+            let newPlayerDatas = []
+            for (let item of data.Items) {
+                const eventData = item[eventName]
+                if (eventData !== undefined) {
+                    newPlayerDatas.push({
+                        displayName: item.displayName || "Anonymous",
+                        points: eventData.points
+                    })
                 }
-            }))
+            }
+
+            playerData = playerData.concat(newPlayerDatas)
 
             if (data.LastEvaluatedKey !== undefined) {
                 params.ExclusiveStartKey = data.LastEvaluatedKey
@@ -534,6 +640,24 @@ module.exports.addRatedBattle = (e, c, cb) => { Common.handler(e, c, cb, async (
 module.exports.updatePlayerRatings = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
     let eventName = decodeURIComponent(event.pathParameters.eventName)
     await updatePlayerRatings(eventName)
+
+    return {
+        success: true
+    }
+})}
+
+module.exports.calcBattlePassPoints = (e, c, cb) => { Common.handler(e, c, cb, async (event, context) => {
+    let eventName = decodeURIComponent(event.pathParameters.eventName)
+
+    let users = await scanTable(process.env.USER_TABLE, "#key, displayName", {
+        "#key": "key"
+    })
+
+    console.log("scanned users", users)
+
+    for (let user of users) {
+        await module.exports.collectUserRewards(eventName, user.key, user.displayName)
+    }
 
     return {
         success: true
@@ -991,7 +1115,7 @@ async function batchPutItems(tableName, putRequests) {
     for (let i = 0; i < putRequests.length; i += 25) {
         let params = {
             RequestItems: {
-                [tableName]: putRequests.slice(i, 25)
+                [tableName]: putRequests.slice(i, i + 25)
             }
         }
         await docClient.batchWrite(params).promise().catch((error) => {
